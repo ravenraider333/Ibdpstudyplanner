@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IB DP Study Planner</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">IB DP EXAM DASHBOARD</p>
+          <h1>Study Planner</h1>
+          <p class="subtitle">Pick your subjects, plan 3 topics daily, and track completion by course, unit, and sub-unit.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="open-profile" class="ghost">Profile</button>
+          <button id="logout" class="danger">Log out</button>
+        </div>
+      </header>
+
+      <section id="status-message" class="status card" aria-live="polite">Ready.</section>
+
+      <section id="auth-card" class="card auth-card">
+        <h2>Log in with your personalized code</h2>
+        <p>Use a code like <strong>tenron1844</strong>. If it does not exist yet, it will be created automatically.</p>
+        <form id="auth-form">
+          <input id="user-code" type="text" required minlength="4" maxlength="24" placeholder="Enter your code" />
+          <button type="submit">Enter planner</button>
+        </form>
+      </section>
+
+      <main id="planner" class="hidden">
+        <section class="grid top-grid">
+          <article class="card">
+            <h2>Profile setup</h2>
+            <p>Select only your IB courses and level. Your syllabus auto-filters.</p>
+            <div id="course-picker"></div>
+          </article>
+
+          <article class="card">
+            <h2>Today (pick up to 3)</h2>
+            <p>Choose up to three topics to focus on today.</p>
+            <form id="daily-form" class="stack"></form>
+            <ul id="today-list" class="mini-checklist"></ul>
+          </article>
+
+          <article class="card">
+            <h2>Study timer</h2>
+            <div id="timer-display" class="timer-display">25:00</div>
+            <div class="timer-controls">
+              <input id="timer-minutes" type="number" min="1" max="180" value="25" />
+              <button id="start-timer" type="button">Start</button>
+              <button id="reset-timer" class="ghost" type="button">Reset</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="grid stats-grid">
+          <article class="card">
+            <h2>Overall progress</h2>
+            <div id="overall-progress"></div>
+          </article>
+          <article class="card">
+            <h2>By course</h2>
+            <div id="course-progress"></div>
+          </article>
+          <article class="card">
+            <h2>By unit</h2>
+            <div id="unit-progress"></div>
+          </article>
+        </section>
+
+        <section class="card">
+          <h2>Full syllabus checklist</h2>
+          <p>Completed topics are crossed out automatically and kept in your profile.</p>
+          <div id="syllabus-checklist" class="syllabus"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="profile-dialog">
+      <h3>Your profile code</h3>
+      <p id="profile-code"></p>
+      <button id="close-profile" type="button">Close</button>
+    </dialog>
+
+    <noscript>
+      <div class="app-shell">
+        <section class="card">This planner requires JavaScript enabled in your browser.</section>
+      </div>
+    </noscript>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
