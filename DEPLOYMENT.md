@@ -26,9 +26,14 @@ git push -u origin work
 
 1. Open **Settings → Pages** in your GitHub repo.
 2. Under **Build and deployment**, choose **Deploy from a branch**.
-3. Select branch **main** (or your preferred branch) and folder **/(root)**.
+3. Select branch **main** (or your preferred branch) and folder **/docs** (recommended) or **/(root)**.
 4. Save and wait for deployment.
 
 ## 4) Merge PR branch
 
 If your changes are in a PR branch, merge it into your Pages branch (usually `main`) so the site updates.
+
+
+## 5) Pages source included
+
+This repo now includes a `docs/` copy of the app so GitHub Pages works immediately when source is set to `/docs`.

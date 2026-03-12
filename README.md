@@ -23,3 +23,8 @@ Open: `http://localhost:4173`
 - This repo includes `.nojekyll` to avoid asset processing surprises.
 - If you still see a blank page, hard refresh and check browser console for status/error text shown in the app header.
 - If you do not see commits on GitHub at all, your local branch is likely not connected/pushed yet. Follow `DEPLOYMENT.md`.
+
+
+## Pages source quick fix
+
+If your Pages source is set to `/docs`, this repo now includes `docs/index.html` + assets.
