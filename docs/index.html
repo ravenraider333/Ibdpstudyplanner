@@ -10,10 +10,10 @@
     <div class="container">
       <header class="card hero">
         <div>
-          <p class="chip">5-WEEK EXAM STUDY PLANNER</p>
+          <p class="chip">IB DP EXAM STUDY PLANNER</p>
           <h1>Study Planner</h1>
-          <p class="muted">Pick your subjects, auto-build your syllabus reservoir, choose 3 focus topics every day, and track progress.</p>
-          <p id="status" class="muted status">Ready.</p>
+          <p class="muted">Build your subject set once, then track progress by topic, subject, and unit every day.</p>
+          <p id="status" class="muted">Ready.</p>
         </div>
         <div class="hero-actions">
           <button id="profile-btn" class="ghost" type="button">Profile</button>
@@ -21,16 +21,25 @@
         </div>
       </header>
 
-      <section id="auth" class="card auth">
+      <section id="auth-view" class="card block">
         <h2>Enter your profile code</h2>
-        <p class="muted">Use the same code on another device to load your planner.</p>
-        <form id="auth-form">
+        <p class="muted">Use the same code on another device to load your progress.</p>
+        <form id="auth-form" class="row-auth">
           <input id="code-input" required minlength="4" maxlength="40" placeholder="e.g. tenron1844" />
           <button type="submit">Open planner</button>
         </form>
       </section>
 
-      <main id="app" class="hidden">
+      <section id="onboarding-view" class="card block hidden">
+        <h2>First-time setup: pick your subjects</h2>
+        <p class="muted">Choose your subjects and HL/SL once. After this, subject choices are locked for this profile.</p>
+        <div id="subject-picker"></div>
+        <div class="actions">
+          <button id="save-onboarding" type="button">Save subjects and continue</button>
+        </div>
+      </section>
+
+      <main id="dashboard-view" class="hidden">
         <section class="grid three">
           <article class="card">
             <h3>Overall progress</h3>
@@ -38,8 +47,8 @@
           </article>
           <article class="card">
             <h3>Countdown to exams</h3>
-            <div class="countdown-date" id="countdown-date">May 1, 2026</div>
-            <div class="countdown-grid">
+            <div id="countdown-date" class="big">May 1, 2026</div>
+            <div class="count-grid">
               <div><strong id="cd-days">0</strong><span>Days</span></div>
               <div><strong id="cd-hours">0</strong><span>Hours</span></div>
               <div><strong id="cd-mins">0</strong><span>Mins</span></div>
@@ -49,18 +58,18 @@
           <article class="card">
             <h3>Study timer</h3>
             <div id="timer-display" class="timer">25:00</div>
-            <div class="row">
-              <input id="timer-input" type="number" min="1" max="180" value="25" />
+            <div class="row-3">
+              <input id="timer-mins" type="number" min="1" max="180" value="25" />
               <button id="timer-start" type="button">Start</button>
-              <button id="timer-reset" class="ghost" type="button">Reset</button>
+              <button id="timer-reset" type="button" class="ghost">Reset</button>
             </div>
           </article>
         </section>
 
         <section class="grid two">
           <article class="card">
-            <h3>Today (choose 3 topics)</h3>
-            <form id="daily-picks" class="stack"></form>
+            <h3>Today (pick 3 topics)</h3>
+            <form id="daily-form" class="stack"></form>
             <ul id="today-list" class="list"></ul>
           </article>
           <article class="card">
@@ -82,22 +91,11 @@
       </main>
     </div>
 
-    <dialog id="subject-modal">
-      <h3>Pick your IB subjects</h3>
-      <p class="muted">Select what you take, then choose HL/SL (you can edit later in Profile).</p>
-      <div id="subject-groups" class="subject-groups"></div>
-      <div class="row end">
-        <button id="save-subjects" type="button">Save subjects</button>
-      </div>
-    </dialog>
-
     <dialog id="profile-modal">
       <h3>Profile</h3>
       <p>Code: <strong id="profile-code"></strong></p>
-      <div class="row">
-        <button id="edit-subjects" type="button">Edit subjects</button>
-        <button id="close-profile" class="ghost" type="button">Close</button>
-      </div>
+      <p class="muted">Subjects are locked after first setup for this profile.</p>
+      <button id="close-profile" type="button">Close</button>
     </dialog>
 
     <script src="./app.js" defer></script>
