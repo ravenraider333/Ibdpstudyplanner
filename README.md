@@ -1,13 +1,12 @@
 # IB DP Study Planner
 
-Features:
-- Login by profile code
-- **First-time-only** subject setup page (subjects become locked for that profile)
-- HL/SL filtering, including HL-only topics
-- Daily 3-topic focus picks + checklist
-- Unit badge completion and progress bars
-- Exam countdown + study timer
-- Cloud-first sync by profile code (with local fallback)
+Updated planner includes:
+- Backend-style cloud account sync by profile code (`jsonblob.com` API) + local fallback
+- First-time-only subject setup (locked after save)
+- **English removed** from selectable course options
+- Compact dashboard layout similar to your reference screenshots
+- Task selector in the large left workspace (instead of a huge long syllabus block)
+- Daily 3-topic focus, unit badges, progress bars, countdown, and timer
 
 ## Run
 

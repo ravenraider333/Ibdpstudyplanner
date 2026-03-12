@@ -10,9 +10,9 @@
     <div class="container">
       <header class="card hero">
         <div>
-          <p class="chip">IB DP EXAM STUDY PLANNER</p>
+          <p class="chip">5-WEEK EXAM STUDY PLANNER</p>
           <h1>Study Planner</h1>
-          <p class="muted">Build your subject set once, then track progress by topic, subject, and unit every day.</p>
+          <p class="muted">Track your IB syllabus with daily focus picks, progress bars, unit badges, and cloud account sync.</p>
           <p id="status" class="muted">Ready.</p>
         </div>
         <div class="hero-actions">
@@ -22,71 +22,74 @@
       </header>
 
       <section id="auth-view" class="card block">
-        <h2>Enter your profile code</h2>
-        <p class="muted">Use the same code on another device to load your progress.</p>
-        <form id="auth-form" class="row-auth">
-          <input id="code-input" required minlength="4" maxlength="40" placeholder="e.g. tenron1844" />
+        <h2>Log in with your code</h2>
+        <p class="muted">Same code = same account/progress (cloud synced when backend is reachable).</p>
+        <form id="auth-form" class="auth-row">
+          <input id="code-input" required minlength="4" maxlength="40" placeholder="enter your personal code" />
           <button type="submit">Open planner</button>
         </form>
       </section>
 
       <section id="onboarding-view" class="card block hidden">
-        <h2>First-time setup: pick your subjects</h2>
-        <p class="muted">Choose your subjects and HL/SL once. After this, subject choices are locked for this profile.</p>
-        <div id="subject-picker"></div>
-        <div class="actions">
-          <button id="save-onboarding" type="button">Save subjects and continue</button>
-        </div>
+        <h2>First-time setup</h2>
+        <p class="muted">Pick subjects and HL/SL once. These stay locked for this account.</p>
+        <div id="subject-picker" class="subject-picker"></div>
+        <div class="right"><button id="save-onboarding" type="button">Save subjects</button></div>
       </section>
 
       <main id="dashboard-view" class="hidden">
-        <section class="grid three">
-          <article class="card">
-            <h3>Overall progress</h3>
-            <div id="overall-progress"></div>
-          </article>
-          <article class="card">
-            <h3>Countdown to exams</h3>
-            <div id="countdown-date" class="big">May 1, 2026</div>
-            <div class="count-grid">
-              <div><strong id="cd-days">0</strong><span>Days</span></div>
-              <div><strong id="cd-hours">0</strong><span>Hours</span></div>
-              <div><strong id="cd-mins">0</strong><span>Mins</span></div>
-              <div><strong id="cd-secs">0</strong><span>Secs</span></div>
-            </div>
-          </article>
-          <article class="card">
-            <h3>Study timer</h3>
-            <div id="timer-display" class="timer">25:00</div>
-            <div class="row-3">
-              <input id="timer-mins" type="number" min="1" max="180" value="25" />
-              <button id="timer-start" type="button">Start</button>
-              <button id="timer-reset" type="button" class="ghost">Reset</button>
-            </div>
-          </article>
-        </section>
-
-        <section class="grid two">
-          <article class="card">
-            <h3>Today (pick 3 topics)</h3>
-            <form id="daily-form" class="stack"></form>
+        <section class="grid top-grid">
+          <article class="card workspace">
+            <h3>Task selector</h3>
+            <p class="muted">Use the blank space to choose your 3 topics for today.</p>
+            <form id="daily-form" class="daily-builder"></form>
             <ul id="today-list" class="list"></ul>
           </article>
-          <article class="card">
-            <h3>Unit completion badges</h3>
-            <div id="unit-badges" class="badge-grid"></div>
+
+          <article class="side-stack">
+            <div class="card">
+              <h3>Progress</h3>
+              <div id="overall-progress"></div>
+            </div>
+            <div class="card">
+              <h3>Countdown to exams</h3>
+              <div id="countdown-date" class="big">May 1, 2026</div>
+              <div class="count-grid">
+                <div><strong id="cd-days">0</strong><span>Days</span></div>
+                <div><strong id="cd-hours">0</strong><span>Hours</span></div>
+                <div><strong id="cd-mins">0</strong><span>Mins</span></div>
+                <div><strong id="cd-secs">0</strong><span>Secs</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Overall completion</h3>
+              <div id="subject-progress"></div>
+            </div>
           </article>
         </section>
 
-        <section class="grid two">
+        <section class="grid second-grid">
           <article class="card">
-            <h3>By subject</h3>
-            <div id="subject-progress"></div>
+            <h3>Today</h3>
+            <p class="muted">Your quick focus list for this study day.</p>
+            <div id="today-summary"></div>
           </article>
           <article class="card">
-            <h3>Syllabus reservoir</h3>
-            <div id="reservoir"></div>
+            <h3>Focus & motivation</h3>
+            <p id="quote" class="quote">One focused session can change the whole week.</p>
+            <div class="timer" id="timer-display">25:00</div>
+            <div class="timer-row">
+              <input id="timer-mins" type="number" min="1" max="180" value="25" />
+              <button id="timer-start" type="button">Start</button>
+              <button id="timer-reset" class="ghost" type="button">Reset timer</button>
+            </div>
           </article>
+        </section>
+
+        <section class="card">
+          <h3>Unit completion badges</h3>
+          <p class="muted">Badges unlock automatically when all tasks in a unit are complete.</p>
+          <div id="unit-badges" class="badge-grid"></div>
         </section>
       </main>
     </div>
@@ -94,7 +97,7 @@
     <dialog id="profile-modal">
       <h3>Profile</h3>
       <p>Code: <strong id="profile-code"></strong></p>
-      <p class="muted">Subjects are locked after first setup for this profile.</p>
+      <p class="muted">Subjects are locked after first setup. English removed from available options.</p>
       <button id="close-profile" type="button">Close</button>
     </dialog>
 
