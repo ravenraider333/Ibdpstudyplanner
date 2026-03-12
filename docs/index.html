@@ -41,7 +41,7 @@
         <section class="grid top-grid">
           <article class="card workspace">
             <h3>Task selector</h3>
-            <p class="muted">Use the blank space to choose your 3 topics for today.</p>
+            <p class="muted">Daily picks reset each new day.</p>
             <form id="daily-form" class="daily-builder"></form>
             <ul id="today-list" class="list"></ul>
           </article>
@@ -77,11 +77,18 @@
           <article class="card">
             <h3>Focus & motivation</h3>
             <p id="quote" class="quote">One focused session can change the whole week.</p>
-            <div class="timer" id="timer-display">25:00</div>
+            <div class="timer timer-stopped" id="timer-display">25:00</div>
+            <div class="preset-row">
+              <button class="timer-preset" data-mins="20" type="button">20 min</button>
+              <button class="timer-preset" data-mins="40" type="button">40 min</button>
+              <button class="timer-preset" data-mins="60" type="button">60 min</button>
+              <button class="timer-preset" data-mins="custom" type="button">Other</button>
+            </div>
             <div class="timer-row">
               <input id="timer-mins" type="number" min="1" max="180" value="25" />
               <button id="timer-start" type="button">Start</button>
-              <button id="timer-reset" class="ghost" type="button">Reset timer</button>
+              <button id="timer-pause" class="ghost" type="button">Pause</button>
+              <button id="timer-reset" class="ghost" type="button">Reset</button>
             </div>
           </article>
         </section>
