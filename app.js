@@ -1,5 +1,5 @@
 const EXAM_DATE = new Date("2026-04-27T09:00:00");
-const BACKEND_URL = "https://jsonblob.com/api/jsonBlob";
+const BACKEND_URL = "https://api.jsonstorage.net/v1/json";
 const t = (name, hlOnly = false) => ({ name, hlOnly });
 
 const syllabusCatalog = {
@@ -60,13 +60,29 @@ const syllabusCatalog = {
 
 const SUBJECTS = Object.keys(syllabusCatalog);
 const $ = (s) => document.querySelector(s);
-const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], onboarded: false });
+const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], onboarded: false, updatedAt: 0 });
 const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null };
 
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 const localKey = (code) => `ibdp:${code}`;
-const cloudUrl = (code) => `${BACKEND_URL}/ibdpstudyplanner-${code}`;
+const cloudUrl = (code) => `${BACKEND_URL}/${codeToId(code)}`;
+function codeToId(code) {
+  // Deterministic id for cross-device retrieval by the same code
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b1;
+  for (let i = 0; i < code.length; i += 1) {
+    const ch = code.charCodeAt(i);
+    h1 ^= ch;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= ch + ((h2 << 6) >>> 0) + (h2 >>> 2);
+  }
+  const hex = [h1 >>> 0, h2 >>> 0, (~h1) >>> 0, (~h2) >>> 0]
+    .map((n) => n.toString(16).padStart(8, "0"))
+    .join("");
+  return hex;
+}
+
 
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
@@ -92,6 +108,7 @@ function normalize(p) {
     completed: p?.completed || {},
     today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [],
     onboarded: Boolean(p?.onboarded),
+    updatedAt: Number(p?.updatedAt || 0),
   };
 }
 
@@ -116,8 +133,9 @@ function progressRow(label, done, total) {
 
 function persist() {
   if (!state.code) return;
+  state.profile.updatedAt = Date.now();
   localSave(state.code, state.profile);
-  cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync loaded." : "Cloud unavailable; saved on this device."));
+  cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device."));
 }
 
 function renderSubjectPicker() {
@@ -264,13 +282,19 @@ async function login(codeRaw) {
   state.code = code;
   $("#profile-code").textContent = code;
 
-  const cloud = await cloudLoad(code);
-  const local = localLoad(code);
-  state.profile = normalize(cloud || local || defaultProfile());
+  const cloud = normalize(await cloudLoad(code));
+  const local = normalize(localLoad(code));
 
-  if (cloud) setStatus("Cloud account loaded.");
-  else if (local) setStatus("Local account loaded (cloud not reachable).");
-  else setStatus("New account created.");
+  if (cloud.updatedAt >= local.updatedAt && cloud.updatedAt > 0) {
+    state.profile = cloud;
+    setStatus("Cloud account loaded.");
+  } else if (local.updatedAt > 0) {
+    state.profile = local;
+    setStatus("Local account loaded (cloud not reachable or older).");
+  } else {
+    state.profile = defaultProfile();
+    setStatus("New account created.");
+  }
 
   localSave(code, state.profile);
   if (!state.profile.onboarded) {
