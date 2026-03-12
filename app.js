@@ -17,49 +17,21 @@ const SUBJECTS = Object.keys(syllabusCatalog);
 const $ = (s) => document.querySelector(s);
 const dayStamp = () => new Date().toISOString().slice(0, 10);
 const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], onboarded: false, updatedAt: 0, dayStamp: dayStamp() });
-const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped" };
+const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped", activeSubject: null };
 
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 const localKey = (code) => `ibdp:${code}`;
-function codeToId(code) {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x9e3779b1;
-  for (let i = 0; i < code.length; i += 1) {
-    const ch = code.charCodeAt(i);
-    h1 ^= ch;
-    h1 = Math.imul(h1, 0x01000193);
-    h2 ^= ch + ((h2 << 6) >>> 0) + (h2 >>> 2);
-  }
-  return [h1 >>> 0, h2 >>> 0, (~h1) >>> 0, (~h2) >>> 0].map((n) => n.toString(16).padStart(8, "0")).join("");
-}
+function codeToId(code) { let h1 = 0x811c9dc5; let h2 = 0x9e3779b1; for (let i = 0; i < code.length; i += 1) { const ch = code.charCodeAt(i); h1 ^= ch; h1 = Math.imul(h1, 0x01000193); h2 ^= ch + ((h2 << 6) >>> 0) + (h2 >>> 2); } return [h1 >>> 0, h2 >>> 0, (~h1) >>> 0, (~h2) >>> 0].map((n) => n.toString(16).padStart(8, "0")).join(""); }
 const cloudUrl = (code) => `${BACKEND_URL}/${codeToId(code)}`;
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
-
 async function cloudLoad(code) { try { const r = await fetch(cloudUrl(code)); if (!r.ok) return null; return await r.json(); } catch { return null; } }
 async function cloudSave(code, profile) { try { const r = await fetch(cloudUrl(code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) }); return r.ok; } catch { return false; } }
 
-function normalize(p) {
-  return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() };
-}
-
-function persist() {
-  if (!state.code) return;
-  state.profile.updatedAt = Date.now();
-  localSave(state.code, state.profile);
-  cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device."));
-}
-
-function ensureDailyReset() {
-  const today = dayStamp();
-  if (state.profile.dayStamp !== today) {
-    state.profile.dayStamp = today;
-    state.profile.today = [];
-    persist();
-    setStatus("New day detected: daily task selector reset.");
-  }
-}
+function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
+function persist() { if (!state.code) return; state.profile.updatedAt = Date.now(); localSave(state.code, state.profile); cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device.")); }
+function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
 
 function getTasks() {
   const out = [];
@@ -75,10 +47,7 @@ function getTasks() {
   return out;
 }
 
-function progressRow(label, done, total) {
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  return `<div class="progress"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`;
-}
+function progressRow(label, done, total) { const pct = total ? Math.round((done / total) * 100) : 0; return `<div class="progress"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`; }
 
 function renderSubjectPicker() {
   const root = $("#subject-picker");
@@ -106,21 +75,13 @@ function renderOverview() {
   const tasks = getTasks();
   const done = tasks.filter((t) => t.done).length;
   $("#overall-progress").innerHTML = progressRow("Overall", done, tasks.length);
-
   const bySubject = {};
-  tasks.forEach((t) => {
-    bySubject[t.subject] ??= { done: 0, total: 0 };
-    bySubject[t.subject].total += 1;
-    if (t.done) bySubject[t.subject].done += 1;
-  });
+  tasks.forEach((t) => { bySubject[t.subject] ??= { done: 0, total: 0 }; bySubject[t.subject].total += 1; if (t.done) bySubject[t.subject].done += 1; });
   $("#subject-progress").innerHTML = Object.entries(bySubject).map(([s, v]) => progressRow(`${s} (${state.profile.selectedSubjects[s]})`, v.done, v.total)).join("");
 }
 
-function removeTodayTask(id) {
-  state.profile.today = state.profile.today.filter((x) => x !== id);
-  persist();
-  renderDashboard();
-}
+function removeTodayTask(id) { state.profile.today = state.profile.today.filter((x) => x !== id); persist(); renderDashboard(); }
+function addTodayTask(id) { if (state.profile.today.includes(id)) return; state.profile.today = [...state.profile.today, id].slice(0, 3); persist(); renderDashboard(); }
 
 function taskCard(task) {
   const li = document.createElement("li");
@@ -128,18 +89,11 @@ function taskCard(task) {
   li.className = `task ${task.done ? "done" : ""}`;
   li.innerHTML = `<div class="handle">⋮⋮</div><div><div class="task-head"><span class="pill">${task.subject}</span><span class="pill ${task.done ? "ok" : "warn"}">${statusText}</span></div><div class="name">${task.topic}</div><small class="muted">${task.unit}</small></div><div class="task-right"></div>`;
   const right = li.querySelector(".task-right");
-
   const box = document.createElement("input");
   box.type = "checkbox";
   box.checked = task.done;
-  box.addEventListener("change", () => {
-    if (box.checked) state.profile.completed[task.id] = true;
-    else delete state.profile.completed[task.id];
-    persist();
-    renderDashboard();
-  });
+  box.addEventListener("change", () => { if (box.checked) state.profile.completed[task.id] = true; else delete state.profile.completed[task.id]; persist(); renderDashboard(); });
   right.appendChild(box);
-
   const del = document.createElement("button");
   del.className = "mini-btn";
   del.type = "button";
@@ -149,24 +103,49 @@ function taskCard(task) {
   return li;
 }
 
-function renderDailyBuilder() {
-  const form = $("#daily-form");
-  form.innerHTML = "";
-  const openTasks = getTasks().filter((t) => !t.done);
+function renderSelectorPanel() {
+  const tasks = getTasks();
+  const nav = $("#subject-nav");
+  const browser = $("#topic-browser");
+  nav.innerHTML = "";
+  browser.innerHTML = "";
 
-  for (let i = 0; i < 3; i += 1) {
-    const select = document.createElement("select");
-    select.innerHTML = `<option value="">Pick focus #${i + 1}</option>${openTasks.map((t) => `<option value="${t.id}">${t.subject} • ${t.topic}</option>`).join("")}`;
-    select.value = state.profile.today[i] || "";
-    select.addEventListener("change", () => {
-      const next = [...state.profile.today];
-      next[i] = select.value;
-      state.profile.today = [...new Set(next.filter(Boolean))].slice(0, 3);
-      persist();
-      renderDashboard();
-    });
-    form.appendChild(select);
-  }
+  const subjects = Object.keys(state.profile.selectedSubjects);
+  if (!state.activeSubject || !subjects.includes(state.activeSubject)) state.activeSubject = subjects[0] || null;
+
+  subjects.forEach((subject) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `subject-tab ${subject === state.activeSubject ? "active" : ""}`;
+    btn.textContent = `IB ${subject}`;
+    btn.addEventListener("click", () => { state.activeSubject = subject; renderSelectorPanel(); });
+    nav.appendChild(btn);
+  });
+
+  if (!state.activeSubject) return;
+  const subjectTasks = tasks.filter((t) => t.subject === state.activeSubject);
+  subjectTasks.forEach((task) => {
+    const row = document.createElement("div");
+    row.className = `topic-row ${task.done ? "completed" : ""}`;
+    row.innerHTML = `<span class="topic-text">${task.topic}</span><div class="topic-actions"></div>`;
+    const actions = row.querySelector(".topic-actions");
+
+    const mark = document.createElement("input");
+    mark.type = "checkbox";
+    mark.checked = task.done;
+    mark.addEventListener("change", () => { if (mark.checked) state.profile.completed[task.id] = true; else delete state.profile.completed[task.id]; persist(); renderDashboard(); });
+    actions.appendChild(mark);
+
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "small";
+    add.textContent = state.profile.today.includes(task.id) ? "Added" : "+ Add";
+    add.disabled = state.profile.today.includes(task.id) || state.profile.today.length >= 3;
+    add.addEventListener("click", () => addTodayTask(task.id));
+    actions.appendChild(add);
+
+    browser.appendChild(row);
+  });
 }
 
 function renderTodayLists() {
@@ -185,110 +164,44 @@ function renderTodayLists() {
 
 function renderBadges() {
   const byUnit = {};
-  getTasks().forEach((t) => {
-    const key = `${t.subject}: ${t.unit}`;
-    byUnit[key] ??= { done: 0, total: 0 };
-    byUnit[key].total += 1;
-    if (t.done) byUnit[key].done += 1;
-  });
+  getTasks().forEach((t) => { const key = `${t.subject}: ${t.unit}`; byUnit[key] ??= { done: 0, total: 0 }; byUnit[key].total += 1; if (t.done) byUnit[key].done += 1; });
   $("#unit-badges").innerHTML = Object.entries(byUnit).map(([k, s]) => `<div class="badge ${s.done === s.total ? "complete" : ""}"><strong>${k}</strong><div class="muted">${s.done}/${s.total} tasks complete</div></div>`).join("");
 }
 
-function renderDashboard() {
-  ensureDailyReset();
-  renderOverview();
-  renderDailyBuilder();
-  renderTodayLists();
-  renderBadges();
-}
+function renderDashboard() { ensureDailyReset(); renderOverview(); renderSelectorPanel(); renderTodayLists(); renderBadges(); }
+function showView(view) { $("#auth-view").classList.add("hidden"); $("#onboarding-view").classList.add("hidden"); $("#dashboard-view").classList.add("hidden"); $(view).classList.remove("hidden"); }
+function tickCountdown() { const diff = Math.max(0, EXAM_DATE.getTime() - Date.now()); $("#cd-days").textContent = String(Math.floor(diff / (1000 * 60 * 60 * 24))); $("#cd-hours").textContent = String(Math.floor((diff / (1000 * 60 * 60)) % 24)); $("#cd-mins").textContent = String(Math.floor((diff / (1000 * 60)) % 60)); $("#cd-secs").textContent = String(Math.floor((diff / 1000) % 60)); }
 
-function showView(view) {
-  $("#auth-view").classList.add("hidden");
-  $("#onboarding-view").classList.add("hidden");
-  $("#dashboard-view").classList.add("hidden");
-  $(view).classList.remove("hidden");
-}
-
-function tickCountdown() {
-  const diff = Math.max(0, EXAM_DATE.getTime() - Date.now());
-  $("#cd-days").textContent = String(Math.floor(diff / (1000 * 60 * 60 * 24)));
-  $("#cd-hours").textContent = String(Math.floor((diff / (1000 * 60 * 60)) % 24));
-  $("#cd-mins").textContent = String(Math.floor((diff / (1000 * 60)) % 60));
-  $("#cd-secs").textContent = String(Math.floor((diff / 1000) % 60));
-}
-
-function drawTimer() {
-  const m = String(Math.floor(state.timer / 60)).padStart(2, "0");
-  const s = String(state.timer % 60).padStart(2, "0");
-  const el = $("#timer-display");
-  el.textContent = `${m}:${s}`;
-  el.classList.remove("timer-running", "timer-stopped", "timer-paused");
-  el.classList.add(`timer-${state.timerState}`);
-}
-
-function readCustomMinutes() {
-  const raw = $("#timer-custom").value.trim();
-  const parsed = Number(raw);
-  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 180) return parsed;
-  return null;
-}
-
-function applyMinutes(mins) {
-  state.timer = mins * 60;
-  state.timerState = "stopped";
-  drawTimer();
-}
+function drawTimer() { const m = String(Math.floor(state.timer / 60)).padStart(2, "0"); const s = String(state.timer % 60).padStart(2, "0"); const el = $("#timer-display"); el.textContent = `${m}:${s}`; el.classList.remove("timer-running", "timer-stopped", "timer-paused"); el.classList.add(`timer-${state.timerState}`); }
+function readCustomMinutes() { const parsed = Number($("#timer-custom").value.trim()); return Number.isFinite(parsed) && parsed >= 1 && parsed <= 180 ? parsed : null; }
+function applyMinutes(mins) { state.timer = mins * 60; state.timerState = "stopped"; drawTimer(); }
 
 async function login(codeRaw) {
   const code = sanitize(codeRaw);
   if (!code) return;
   state.code = code;
   $("#profile-code").textContent = code;
-
   const cloud = normalize(await cloudLoad(code));
   const local = normalize(localLoad(code));
-  if (cloud.updatedAt >= local.updatedAt && cloud.updatedAt > 0) {
-    state.profile = cloud;
-    setStatus("Cloud account loaded.");
-  } else if (local.updatedAt > 0) {
-    state.profile = local;
-    setStatus("Local account loaded (cloud not reachable or older).");
-  } else {
-    state.profile = defaultProfile();
-    setStatus("New account created.");
-  }
-
+  if (cloud.updatedAt >= local.updatedAt && cloud.updatedAt > 0) { state.profile = cloud; setStatus("Cloud account loaded."); }
+  else if (local.updatedAt > 0) { state.profile = local; setStatus("Local account loaded (cloud not reachable or older)."); }
+  else { state.profile = defaultProfile(); setStatus("New account created."); }
   localSave(code, state.profile);
-  if (!state.profile.onboarded) {
-    renderSubjectPicker();
-    showView("#onboarding-view");
-    return;
-  }
+  if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
 }
 
 function bind() {
-  $("#auth-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    login($("#code-input").value);
-  });
-
+  $("#auth-form").addEventListener("submit", (e) => { e.preventDefault(); login($("#code-input").value); });
   $("#save-onboarding").addEventListener("click", () => {
-    if (state.profile.onboarded) {
-      setStatus("Subjects are locked for this account.");
-      showView("#dashboard-view");
-      renderDashboard();
-      return;
-    }
+    if (state.profile.onboarded) { setStatus("Subjects are locked for this account."); showView("#dashboard-view"); renderDashboard(); return; }
     const picked = collectSubjects();
-    if (Object.keys(picked).length === 0) {
-      setStatus("Pick at least one subject.");
-      return;
-    }
+    if (Object.keys(picked).length === 0) { setStatus("Pick at least one subject."); return; }
     state.profile.selectedSubjects = picked;
     state.profile.onboarded = true;
     state.profile.dayStamp = dayStamp();
+    state.activeSubject = Object.keys(picked)[0] || null;
     persist();
     showView("#dashboard-view");
     renderDashboard();
@@ -296,31 +209,10 @@ function bind() {
 
   $("#profile-btn").addEventListener("click", () => $("#profile-modal").showModal?.());
   $("#close-profile").addEventListener("click", () => $("#profile-modal").close());
-  $("#logout-btn").addEventListener("click", () => {
-    if (state.timerRef) clearInterval(state.timerRef);
-    state.timerRef = null;
-    state.timerState = "stopped";
-    state.code = "";
-    state.profile = defaultProfile();
-    showView("#auth-view");
-    drawTimer();
-    setStatus("Logged out.");
-  });
+  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; showView("#auth-view"); drawTimer(); setStatus("Logged out."); });
 
-  document.querySelectorAll(".timer-preset").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      applyMinutes(Number(btn.dataset.mins));
-    });
-  });
-
-  $("#timer-custom").addEventListener("input", () => {
-    document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active"));
-    const mins = readCustomMinutes();
-    if (!mins) return;
-    if (!state.timerRef) applyMinutes(mins);
-  });
+  document.querySelectorAll(".timer-preset").forEach((btn) => btn.addEventListener("click", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); btn.classList.add("active"); applyMinutes(Number(btn.dataset.mins)); }));
+  $("#timer-custom").addEventListener("input", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); const mins = readCustomMinutes(); if (mins && !state.timerRef) applyMinutes(mins); });
 
   $("#timer-start").addEventListener("click", () => {
     if (state.timerRef) return;
@@ -328,8 +220,8 @@ function bind() {
     if (custom && state.timerState === "stopped") state.timer = custom * 60;
     if (state.timer <= 0 || state.timerState === "stopped") {
       if (!custom) {
-        const activePreset = document.querySelector(".timer-preset.active")?.dataset.mins;
-        state.timer = (activePreset ? Number(activePreset) : 25) * 60;
+        const preset = document.querySelector(".timer-preset.active")?.dataset.mins;
+        state.timer = (preset ? Number(preset) : 25) * 60;
       }
     }
     state.timerState = "running";
@@ -337,32 +229,11 @@ function bind() {
     state.timerRef = setInterval(() => {
       state.timer = Math.max(0, state.timer - 1);
       drawTimer();
-      if (state.timer === 0) {
-        clearInterval(state.timerRef);
-        state.timerRef = null;
-        state.timerState = "stopped";
-        drawTimer();
-      }
+      if (state.timer === 0) { clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; drawTimer(); }
     }, 1000);
   });
-
-  $("#timer-pause").addEventListener("click", () => {
-    if (!state.timerRef) return;
-    clearInterval(state.timerRef);
-    state.timerRef = null;
-    state.timerState = "paused";
-    drawTimer();
-  });
-
-  $("#timer-reset").addEventListener("click", () => {
-    if (state.timerRef) clearInterval(state.timerRef);
-    state.timerRef = null;
-    const custom = readCustomMinutes();
-    const activePreset = document.querySelector(".timer-preset.active")?.dataset.mins;
-    state.timer = (custom || (activePreset ? Number(activePreset) : 25)) * 60;
-    state.timerState = "stopped";
-    drawTimer();
-  });
+  $("#timer-pause").addEventListener("click", () => { if (!state.timerRef) return; clearInterval(state.timerRef); state.timerRef = null; state.timerState = "paused"; drawTimer(); });
+  $("#timer-reset").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; const custom = readCustomMinutes(); const preset = document.querySelector(".timer-preset.active")?.dataset.mins; state.timer = (custom || (preset ? Number(preset) : 25)) * 60; state.timerState = "stopped"; drawTimer(); });
 }
 
 function init() {

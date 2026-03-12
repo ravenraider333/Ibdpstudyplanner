@@ -41,8 +41,11 @@
         <section class="grid top-grid">
           <article class="card workspace">
             <h3>Task selector</h3>
-            <p class="muted">Daily picks reset each new day.</p>
-            <form id="daily-form" class="daily-builder"></form>
+            <p class="muted">Left side = your subjects. Right side = syllabus points (completed points are crossed out).</p>
+            <div class="selector-layout">
+              <aside id="subject-nav" class="subject-nav"></aside>
+              <section id="topic-browser" class="topic-browser"></section>
+            </div>
             <ul id="today-list" class="list"></ul>
           </article>
 
