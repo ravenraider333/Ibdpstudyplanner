@@ -74,6 +74,7 @@ button { cursor: pointer; font-weight: 700; }
   background: rgba(255,255,255,.06);
 }
 .pill.warn { border-color: rgba(229, 197, 140, .55); color: #ffe6b5; }
+.pill.ok { border-color: rgba(139,217,191,.55); color: #d7ffee; }
 .task-right { display: flex; gap: .45rem; align-items: center; }
 .mini-btn {
   border-radius: 10px;
@@ -107,6 +108,7 @@ button { cursor: pointer; font-weight: 700; }
 .badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .55rem; }
 .badge { border: 1px solid var(--line); border-radius: 12px; background: rgba(15,26,44,.5); padding: .55rem; }
 .badge.complete { border-color: rgba(86,217,177,.7); box-shadow: inset 0 0 0 1px rgba(86,217,177,.35); }
+.badges-section { margin-top: 1.25rem; }
 
 .subject-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .6rem; }
 .subject-item {
@@ -130,5 +132,5 @@ dialog {
 @media (max-width: 980px) {
   .top-grid,
   .second-grid { grid-template-columns: 1fr; }
-  .timer-row { grid-template-columns: 90px 1fr 1fr; }
+  .timer-row { grid-template-columns: 1fr 1fr; }
 }

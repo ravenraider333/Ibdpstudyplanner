@@ -82,10 +82,9 @@
               <button class="timer-preset" data-mins="20" type="button">20 min</button>
               <button class="timer-preset" data-mins="40" type="button">40 min</button>
               <button class="timer-preset" data-mins="60" type="button">60 min</button>
-              <button class="timer-preset" data-mins="custom" type="button">Other</button>
+              <input id="timer-custom" type="text" inputmode="numeric" placeholder="Other (min)" />
             </div>
             <div class="timer-row">
-              <input id="timer-mins" type="number" min="1" max="180" value="25" />
               <button id="timer-start" type="button">Start</button>
               <button id="timer-pause" class="ghost" type="button">Pause</button>
               <button id="timer-reset" class="ghost" type="button">Reset</button>
@@ -93,7 +92,7 @@
           </article>
         </section>
 
-        <section class="card">
+        <section class="card badges-section">
           <h3>Unit completion badges</h3>
           <p class="muted">Badges unlock automatically when all tasks in a unit are complete.</p>
           <div id="unit-badges" class="badge-grid"></div>

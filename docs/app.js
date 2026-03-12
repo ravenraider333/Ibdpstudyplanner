@@ -1,5 +1,5 @@
 const EXAM_DATE = new Date("2026-04-27T09:00:00");
-const BACKEND_URL = "https://api.jsonstorage.net/v1/json";
+const BACKEND_URL = "https://jsonblob.com/api/jsonBlob";
 const t = (name, hlOnly = false) => ({ name, hlOnly });
 
 const syllabusCatalog = {
@@ -16,7 +16,6 @@ const syllabusCatalog = {
 const SUBJECTS = Object.keys(syllabusCatalog);
 const $ = (s) => document.querySelector(s);
 const dayStamp = () => new Date().toISOString().slice(0, 10);
-
 const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], onboarded: false, updatedAt: 0, dayStamp: dayStamp() });
 const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped" };
 
@@ -35,7 +34,6 @@ function codeToId(code) {
   return [h1 >>> 0, h2 >>> 0, (~h1) >>> 0, (~h2) >>> 0].map((n) => n.toString(16).padStart(8, "0")).join("");
 }
 const cloudUrl = (code) => `${BACKEND_URL}/${codeToId(code)}`;
-
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
 
@@ -43,14 +41,14 @@ async function cloudLoad(code) { try { const r = await fetch(cloudUrl(code)); if
 async function cloudSave(code, profile) { try { const r = await fetch(cloudUrl(code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) }); return r.ok; } catch { return false; } }
 
 function normalize(p) {
-  return {
-    selectedSubjects: p?.selectedSubjects || {},
-    completed: p?.completed || {},
-    today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [],
-    onboarded: Boolean(p?.onboarded),
-    updatedAt: Number(p?.updatedAt || 0),
-    dayStamp: p?.dayStamp || dayStamp(),
-  };
+  return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() };
+}
+
+function persist() {
+  if (!state.code) return;
+  state.profile.updatedAt = Date.now();
+  localSave(state.code, state.profile);
+  cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device."));
 }
 
 function ensureDailyReset() {
@@ -80,13 +78,6 @@ function getTasks() {
 function progressRow(label, done, total) {
   const pct = total ? Math.round((done / total) * 100) : 0;
   return `<div class="progress"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`;
-}
-
-function persist() {
-  if (!state.code) return;
-  state.profile.updatedAt = Date.now();
-  localSave(state.code, state.profile);
-  cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device."));
 }
 
 function renderSubjectPicker() {
@@ -133,8 +124,9 @@ function removeTodayTask(id) {
 
 function taskCard(task) {
   const li = document.createElement("li");
+  const statusText = task.done ? "Complete" : "Working on it";
   li.className = `task ${task.done ? "done" : ""}`;
-  li.innerHTML = `<div class="handle">⋮⋮</div><div><div class="task-head"><span class="pill">${task.subject}</span><span class="pill warn">${task.done ? "Done" : "Working on it"}</span></div><div class="name">${task.topic}</div><small class="muted">${task.unit}</small></div><div class="task-right"></div>`;
+  li.innerHTML = `<div class="handle">⋮⋮</div><div><div class="task-head"><span class="pill">${task.subject}</span><span class="pill ${task.done ? "ok" : "warn"}">${statusText}</span></div><div class="name">${task.topic}</div><small class="muted">${task.unit}</small></div><div class="task-right"></div>`;
   const right = li.querySelector(".task-right");
 
   const box = document.createElement("input");
@@ -154,7 +146,6 @@ function taskCard(task) {
   del.textContent = "Delete";
   del.addEventListener("click", () => removeTodayTask(task.id));
   right.appendChild(del);
-
   return li;
 }
 
@@ -200,9 +191,7 @@ function renderBadges() {
     byUnit[key].total += 1;
     if (t.done) byUnit[key].done += 1;
   });
-  $("#unit-badges").innerHTML = Object.entries(byUnit)
-    .map(([k, s]) => `<div class="badge ${s.done === s.total ? "complete" : ""}"><strong>${k}</strong><div class="muted">${s.done}/${s.total} tasks complete</div></div>`)
-    .join("");
+  $("#unit-badges").innerHTML = Object.entries(byUnit).map(([k, s]) => `<div class="badge ${s.done === s.total ? "complete" : ""}"><strong>${k}</strong><div class="muted">${s.done}/${s.total} tasks complete</div></div>`).join("");
 }
 
 function renderDashboard() {
@@ -237,13 +226,17 @@ function drawTimer() {
   el.classList.add(`timer-${state.timerState}`);
 }
 
-function setPreset(mins) {
-  $("#timer-mins").value = String(mins);
-  if (!state.timerRef) {
-    state.timer = mins * 60;
-    state.timerState = "stopped";
-    drawTimer();
-  }
+function readCustomMinutes() {
+  const raw = $("#timer-custom").value.trim();
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 180) return parsed;
+  return null;
+}
+
+function applyMinutes(mins) {
+  state.timer = mins * 60;
+  state.timerState = "stopped";
+  drawTimer();
 }
 
 async function login(codeRaw) {
@@ -271,7 +264,6 @@ async function login(codeRaw) {
     showView("#onboarding-view");
     return;
   }
-
   showView("#dashboard-view");
   renderDashboard();
 }
@@ -319,18 +311,27 @@ function bind() {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      const mins = btn.dataset.mins;
-      if (mins === "custom") {
-        $("#timer-mins").focus();
-        return;
-      }
-      setPreset(Number(mins));
+      applyMinutes(Number(btn.dataset.mins));
     });
+  });
+
+  $("#timer-custom").addEventListener("input", () => {
+    document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active"));
+    const mins = readCustomMinutes();
+    if (!mins) return;
+    if (!state.timerRef) applyMinutes(mins);
   });
 
   $("#timer-start").addEventListener("click", () => {
     if (state.timerRef) return;
-    if (state.timer <= 0 || state.timerState === "stopped") state.timer = Number($("#timer-mins").value || 25) * 60;
+    const custom = readCustomMinutes();
+    if (custom && state.timerState === "stopped") state.timer = custom * 60;
+    if (state.timer <= 0 || state.timerState === "stopped") {
+      if (!custom) {
+        const activePreset = document.querySelector(".timer-preset.active")?.dataset.mins;
+        state.timer = (activePreset ? Number(activePreset) : 25) * 60;
+      }
+    }
     state.timerState = "running";
     drawTimer();
     state.timerRef = setInterval(() => {
@@ -356,7 +357,9 @@ function bind() {
   $("#timer-reset").addEventListener("click", () => {
     if (state.timerRef) clearInterval(state.timerRef);
     state.timerRef = null;
-    state.timer = Number($("#timer-mins").value || 25) * 60;
+    const custom = readCustomMinutes();
+    const activePreset = document.querySelector(".timer-preset.active")?.dataset.mins;
+    state.timer = (custom || (activePreset ? Number(activePreset) : 25)) * 60;
     state.timerState = "stopped";
     drawTimer();
   });
