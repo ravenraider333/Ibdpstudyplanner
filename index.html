@@ -80,6 +80,10 @@
               <h3>Overall completion</h3>
               <div id="subject-progress"></div>
             </div>
+            <div class="card">
+              <h3>Unit progress</h3>
+              <div id="unit-progress"></div>
+            </div>
           </article>
         </section>
 
@@ -87,6 +91,7 @@
           <article class="card">
             <h3>Today</h3>
             <p class="muted">Your quick focus list for this study day.</p>
+            <p id="today-count" class="muted">0/3 selected</p>
             <div id="today-summary"></div>
           </article>
           <article class="card">
@@ -105,6 +110,13 @@
               <button id="timer-reset" class="ghost" type="button">Reset</button>
             </div>
           </article>
+        </section>
+
+
+        <section class="card">
+          <h3>Master checklist</h3>
+          <p class="muted">Full subject → unit → topic checklist synced with today picks and progress.</p>
+          <div id="master-checklist" class="master-checklist"></div>
         </section>
 
         <section class="card badges-section">

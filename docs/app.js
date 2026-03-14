@@ -233,6 +233,15 @@ function getTasks() {
   return out;
 }
 
+function sanitizeTodaySelection(tasks) {
+  const valid = new Set(tasks.map((t) => t.id));
+  const unique = [];
+  state.profile.today.forEach((id) => {
+    if (valid.has(id) && !unique.includes(id)) unique.push(id);
+  });
+  state.profile.today = unique.slice(0, 3);
+}
+
 function progressRow(label, done, total) { const pct = total ? Math.round((done / total) * 100) : 0; return `<div class="progress"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`; }
 
 function renderSubjectPicker() {
@@ -262,8 +271,21 @@ function renderOverview() {
   const done = tasks.filter((t) => t.done).length;
   $("#overall-progress").innerHTML = progressRow("Overall", done, tasks.length);
   const bySubject = {};
-  tasks.forEach((t) => { bySubject[t.subject] ??= { done: 0, total: 0 }; bySubject[t.subject].total += 1; if (t.done) bySubject[t.subject].done += 1; });
+  const byUnit = {};
+  tasks.forEach((t) => {
+    bySubject[t.subject] ??= { done: 0, total: 0 };
+    bySubject[t.subject].total += 1;
+    if (t.done) bySubject[t.subject].done += 1;
+    const unitKey = `${t.subject}: ${t.unit}`;
+    byUnit[unitKey] ??= { done: 0, total: 0 };
+    byUnit[unitKey].total += 1;
+    if (t.done) byUnit[unitKey].done += 1;
+  });
   $("#subject-progress").innerHTML = Object.entries(bySubject).map(([s, v]) => progressRow(`${s} (${state.profile.selectedSubjects[s]})`, v.done, v.total)).join("");
+  const unitProgress = $("#unit-progress");
+  if (unitProgress) {
+    unitProgress.innerHTML = Object.entries(byUnit).map(([k, v]) => progressRow(k, v.done, v.total)).join("");
+  }
 }
 
 function removeTodayTask(id) { state.profile.today = state.profile.today.filter((x) => x !== id); persist(); renderDashboard(); }
@@ -371,6 +393,57 @@ function renderTodayLists() {
     if (!task) return;
     summary.appendChild(taskCard(task));
   });
+  const counter = $("#today-count");
+  if (counter) counter.textContent = `${state.profile.today.length}/3 selected`;
+}
+
+function renderMasterChecklist() {
+  const root = $("#master-checklist");
+  if (!root) return;
+  const tasks = getTasks();
+  const grouped = {};
+  tasks.forEach((task) => {
+    grouped[task.subject] ??= {};
+    grouped[task.subject][task.unit] ??= [];
+    grouped[task.subject][task.unit].push(task);
+  });
+
+  root.innerHTML = "";
+  Object.entries(grouped).forEach(([subject, units]) => {
+    const subjectWrap = document.createElement("details");
+    subjectWrap.className = "master-subject";
+    subjectWrap.open = subject === state.activeSubject;
+    const subjectTasks = Object.values(units).flat();
+    const subjectDone = subjectTasks.filter((t) => t.done).length;
+    subjectWrap.innerHTML = `<summary>${subject} <span class="muted">${subjectDone}/${subjectTasks.length}</span></summary>`;
+
+    Object.entries(units).forEach(([unit, unitTasks]) => {
+      const unitWrap = document.createElement("details");
+      unitWrap.className = "master-unit";
+      const unitDone = unitTasks.filter((t) => t.done).length;
+      unitWrap.innerHTML = `<summary>${unit} <span class="muted">${unitDone}/${unitTasks.length}</span></summary>`;
+
+      const list = document.createElement("ul");
+      list.className = "master-list";
+      unitTasks.forEach((task) => {
+        const li = document.createElement("li");
+        li.className = `master-item ${task.done ? "done" : ""}`;
+        li.innerHTML = `<label><input type="checkbox" ${task.done ? "checked" : ""}> <span>${task.topic}</span></label>`;
+        li.querySelector("input").addEventListener("change", (e) => {
+          if (e.target.checked) state.profile.completed[task.id] = true;
+          else delete state.profile.completed[task.id];
+          persist();
+          renderDashboard();
+        });
+        list.appendChild(li);
+      });
+
+      unitWrap.appendChild(list);
+      subjectWrap.appendChild(unitWrap);
+    });
+
+    root.appendChild(subjectWrap);
+  });
 }
 
 function renderBadges() {
@@ -379,7 +452,7 @@ function renderBadges() {
   $("#unit-badges").innerHTML = Object.entries(byUnit).map(([k, s]) => `<div class="badge ${s.done === s.total ? "complete" : ""}"><strong>${k}</strong><div class="muted">${s.done}/${s.total} tasks complete</div></div>`).join("");
 }
 
-function renderDashboard() { ensureDailyReset(); renderOverview(); renderSelectorPanel(); renderTodayLists(); renderBadges(); }
+function renderDashboard() { ensureDailyReset(); const tasks = getTasks(); sanitizeTodaySelection(tasks); renderOverview(); renderSelectorPanel(); renderTodayLists(); renderMasterChecklist(); renderBadges(); }
 function showView(view) { $("#auth-view").classList.add("hidden"); $("#onboarding-view").classList.add("hidden"); $("#dashboard-view").classList.add("hidden"); $(view).classList.remove("hidden"); }
 function tickCountdown() { const diff = Math.max(0, EXAM_DATE.getTime() - Date.now()); $("#cd-days").textContent = String(Math.floor(diff / (1000 * 60 * 60 * 24))); $("#cd-hours").textContent = String(Math.floor((diff / (1000 * 60 * 60)) % 24)); $("#cd-mins").textContent = String(Math.floor((diff / (1000 * 60)) % 60)); $("#cd-secs").textContent = String(Math.floor((diff / 1000) % 60)); }
 function drawTimer() { const m = String(Math.floor(state.timer / 60)).padStart(2, "0"); const s = String(state.timer % 60).padStart(2, "0"); const el = $("#timer-display"); el.textContent = `${m}:${s}`; el.classList.remove("timer-running", "timer-stopped", "timer-paused"); el.classList.add(`timer-${state.timerState}`); }
