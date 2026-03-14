@@ -59,6 +59,21 @@ button { cursor: pointer; font-weight: 700; }
 }
 .subject-tab.active { border-color: rgba(140,133,255,.55); box-shadow: inset 0 0 0 1px rgba(140,133,255,.35); }
 .topic-browser { padding: .55rem; display: grid; gap: .4rem; align-content: start; max-height: 360px; overflow: auto; }
+.unit-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: #d9e5ff;
+  background: linear-gradient(90deg, rgba(140,133,255,.28), rgba(139,217,191,.12));
+  border: 1px solid rgba(140,133,255,.32);
+  border-radius: 9px;
+  padding: .28rem .5rem;
+  margin-top: .2rem;
+}
 .topic-row {
   display: flex;
   justify-content: space-between;

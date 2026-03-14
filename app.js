@@ -1,5 +1,4 @@
 const EXAM_DATE = new Date("2026-04-27T09:00:00");
-const BACKEND_URL = "https://api.jsonstorage.net/v1/json";
 const t = (name, hlOnly = false) => ({ name, hlOnly });
 
 const syllabusCatalog = {
@@ -10,37 +9,42 @@ const syllabusCatalog = {
   Economics: {
     units: {
       RWE: [t("RWE - Micro"), t("RWE - Macro"), t("RWE - Global")],
-      Unit2: [
-        t("2.1 Demand"),
-        t("2.2 Supply"),
-        t("2.3 Equilibrium"),
-        t("2.4 Critique of Maximizing Behaviour", true),
-        t("2.5 Demand Elasticity"),
-        t("2.6 Supply Elasticity"),
-        t("2.7 Role of Government"),
-        t("2.8 Externalities & Common Pool Resources"),
-        t("2.9 Public Goods"),
-        t("2.10 Asymmetric Information", true),
-        t("2.11 Market Power", true),
-        t("2.12 The Market's Inability to Achieve Equity", true),
-      ],
+      Unit2: [t("2.1 Demand"), t("2.2 Supply"), t("2.3 Equilibrium"), t("2.4 Critique of Maximizing Behaviour", true), t("2.5 Demand Elasticity"), t("2.6 Supply Elasticity"), t("2.7 Role of Government"), t("2.8 Externalities & Common Pool Resources"), t("2.9 Public Goods"), t("2.10 Asymmetric Information", true), t("2.11 Market Power", true), t("2.12 The Market's Inability to Achieve Equity", true)],
       Unit3: [t("3.1 Measuring Economic Activity"), t("3.2 Aggregate Demand & Aggregate Supply"), t("3.3 Macroeconomic Objectives"), t("3.4 Inequality and Poverty"), t("3.5 Monetary Policy"), t("3.6 Fiscal Policy"), t("3.7 Supply-Side Policy")],
-      Unit4: [
-        t("4.1 Benefits of International Trade"),
-        t("4.2 Types of Trade Protection"),
-        t("4.3 Arguments For and Against Trade Control/Protection"),
-        t("4.4 Economic Integration"),
-        t("4.5 Exchange Rates"),
-        t("4.6 Balance of Payments"),
-        t("4.7 Sustainable Development"),
-        t("4.8 Measuring Development"),
-        t("4.9 Barriers to Economic Growth and/or Economic Development"),
-        t("4.10 Economic Growth and/or Economic Development Strategies"),
-      ],
+      Unit4: [t("4.1 Benefits of International Trade"), t("4.2 Types of Trade Protection"), t("4.3 Arguments For and Against Trade Control/Protection"), t("4.4 Economic Integration"), t("4.5 Exchange Rates"), t("4.6 Balance of Payments"), t("4.7 Sustainable Development"), t("4.8 Measuring Development"), t("4.9 Barriers to Economic Growth and/or Economic Development"), t("4.10 Economic Growth and/or Economic Development Strategies")],
     },
   },
   Physics: { units: { A: [t("A.1 Kinematics"), t("A.2 Forces & momentum"), t("A.3 Work, energy & power"), t("A.4 Rigid body mechanics", true), t("A.5 Relativity", true)], B: [t("B.1 Thermal energy transfers"), t("B.2 Greenhouse effect"), t("B.3 Gas laws"), t("B.4 Thermodynamics", true), t("B.5 Current & circuits")], C: [t("C.1 Simple Harmonic Motion", true), t("C.2 Wave model"), t("C.3 Wave phenomena", true), t("C.4 Standing waves & resonance")], D: [t("D.1 Gravitational fields", true), t("D.2 Electric & magnetic fields", true), t("D.3 Motion in electromagnetic fields"), t("D.4 Induction", true)], E: [t("E.1 Structure of the atom"), t("E.2 Quantum physics", true), t("E.3 Radioactive decay"), t("E.4 Fission"), t("E.5 Fusion & stars")] } },
-  Chem: { units: { Structure: [t("Structure 1.1 Particulate nature of matter"), t("Structure 1.2 Nuclear atom"), t("Structure 1.3 Electron configuration"), t("Structure 1.4 The mole"), t("Structure 1.5 Ideal gases"), t("Structure 2.1 Ionic model"), t("Structure 2.2 Covalent model"), t("Structure 2.3 Metallic model")], Reactivity: [t("Reactivity 1.1 Measuring enthalpy changes"), t("Reactivity 1.2 Energy cycles"), t("Reactivity 1.3 Energy from fuels"), t("Reactivity 1.4 Entropy & spontaneity", true), t("Reactivity 2.1 Amount of chemical change"), t("Reactivity 2.2 Rate of reaction"), t("Reactivity 2.3 Extent of reaction")] } },
+  Chem: {
+    units: {
+      Structure: [
+        t("Structure 1.1 Particulate nature of matter – notes + Dojo"),
+        t("Structure 1.2 Nuclear atom – notes + Dojo"),
+        t("Structure 1.3 Electron configuration – notes + Dojo"),
+        t("Structure 1.4 The mole – calculations"),
+        t("Structure 1.5 Ideal gases – problems"),
+        t("Structure 2.1 Ionic model"),
+        t("Structure 2.2 Covalent model"),
+        t("Structure 2.3 Metallic model"),
+        t("Structure 2.4 From models to materials"),
+        t("Structure 3.1 Periodic table trends"),
+        t("Structure 3.2 Functional groups"),
+      ],
+      Reactivity: [
+        t("Reactivity 1.1 Measuring enthalpy changes"),
+        t("Reactivity 1.2 Energy cycles – notes + Dojo"),
+        t("Reactivity 1.3 Energy from fuels"),
+        t("Reactivity 1.4 Entropy & spontaneity", true),
+        t("Reactivity 2.1 Amount of chemical change"),
+        t("Reactivity 2.2 Rate of reaction"),
+        t("Reactivity 2.3 Extent of reaction"),
+        t("Reactivity 3.1 Proton transfer reactions"),
+        t("Reactivity 3.2 Electron transfer reactions"),
+        t("Reactivity 3.3 Electron sharing reactions"),
+        t("Reactivity 3.4 Electron-pair sharing"),
+      ],
+    },
+  },
   Geo: { units: { Unit1: [t("Population and economic development patterns"), t("Changing populations and places"), t("Challenges and opportunities")], Unit2: [t("Causes of global climate change"), t("Consequence of global climate change"), t("Responding to global climate change")], Unit3: [t("Global trends in consumption"), t("Impacts of changing trends in resource consumption"), t("Resource stewardship")], OptionD: [t("Geophysical systems"), t("Geophysical hazard risks"), t("Hazard risk and vulnerability")], OptionF: [t("Future resilience and adaptation"), t("Measuring food and health"), t("Food systems and spread of disease")], OptionG: [t("Variety of urban environments"), t("Changing urban systems"), t("Urban environmental and social stresses"), t("Building sustainable urban systems")] } },
 };
 
@@ -53,15 +57,12 @@ const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: n
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 const localKey = (code) => `ibdp:${code}`;
-function codeToId(code) { let h1 = 0x811c9dc5; let h2 = 0x9e3779b1; for (let i = 0; i < code.length; i += 1) { const ch = code.charCodeAt(i); h1 ^= ch; h1 = Math.imul(h1, 0x01000193); h2 ^= ch + ((h2 << 6) >>> 0) + (h2 >>> 2); } return [h1 >>> 0, h2 >>> 0, (~h1) >>> 0, (~h2) >>> 0].map((n) => n.toString(16).padStart(8, "0")).join(""); }
-const cloudUrl = (code) => `${BACKEND_URL}/${codeToId(code)}`;
+
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
-async function cloudLoad(code) { try { const r = await fetch(cloudUrl(code)); if (!r.ok) return null; return await r.json(); } catch { return null; } }
-async function cloudSave(code, profile) { try { const r = await fetch(cloudUrl(code), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) }); return r.ok; } catch { return false; } }
 
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
-function persist() { if (!state.code) return; state.profile.updatedAt = Date.now(); localSave(state.code, state.profile); cloudSave(state.code, state.profile).then((ok) => setStatus(ok ? "Cloud sync saved." : "Cloud unavailable; saved on this device.")); }
+function persist() { if (!state.code) return; state.profile.updatedAt = Date.now(); localSave(state.code, state.profile); setStatus("Saved locally on this device/browser."); }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
 
 function getTasks() {
@@ -155,7 +156,16 @@ function renderSelectorPanel() {
 
   if (!state.activeSubject) return;
   const subjectTasks = tasks.filter((t) => t.subject === state.activeSubject);
+  let currentUnit = null;
   subjectTasks.forEach((task) => {
+    if (task.unit !== currentUnit) {
+      currentUnit = task.unit;
+      const unitHeader = document.createElement("div");
+      unitHeader.className = "unit-header";
+      unitHeader.textContent = currentUnit;
+      browser.appendChild(unitHeader);
+    }
+
     const row = document.createElement("div");
     row.className = `topic-row ${task.done ? "completed" : ""}`;
     row.innerHTML = `<span class="topic-text">${task.topic}</span><div class="topic-actions"></div>`;
@@ -208,11 +218,9 @@ async function login(codeRaw) {
   if (!code) return;
   state.code = code;
   $("#profile-code").textContent = code;
-  const cloud = normalize(await cloudLoad(code));
   const local = normalize(localLoad(code));
-  if (cloud.updatedAt >= local.updatedAt && cloud.updatedAt > 0) { state.profile = cloud; setStatus("Cloud account loaded."); }
-  else if (local.updatedAt > 0) { state.profile = local; setStatus("Local account loaded (cloud not reachable or older)."); }
-  else { state.profile = defaultProfile(); setStatus("New account created."); }
+  if (local.updatedAt > 0) { state.profile = local; setStatus("Account loaded from this browser/device."); }
+  else { state.profile = defaultProfile(); setStatus("New account created on this browser/device."); }
   localSave(code, state.profile);
   if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");

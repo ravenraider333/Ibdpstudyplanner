@@ -1,8 +1,7 @@
 # IB DP Study Planner
 
 Updated planner includes:
-- Cross-device account sync by profile code using `api.jsonstorage.net` cloud storage + local fallback
-- Timestamp conflict resolution (latest profile wins on login)
+- Personal code accounts saved in browser local storage
 - First-time-only subject setup (locked after save)
 - English removed from selectable course options
 - Left-side subject browser + right-side syllabus point panel
