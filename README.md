@@ -2,6 +2,7 @@
 
 Updated planner includes:
 - Personal code accounts saved in browser local storage
+- Optional portable sync code export/import to move the same account between devices
 - First-time-only subject setup (locked after save)
 - English removed from selectable course options
 - Left-side subject browser + right-side syllabus point panel

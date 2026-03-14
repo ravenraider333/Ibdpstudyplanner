@@ -23,11 +23,12 @@
 
       <section id="auth-view" class="card block">
         <h2>Log in with your code</h2>
-        <p class="muted">Same code on the same browser/device opens the same saved progress.</p>
+        <p class="muted">Use the same account name (example: suki). To sync between devices, paste the sync code from the profile panel.</p>
         <form id="auth-form" class="auth-row">
-          <input id="code-input" required minlength="4" maxlength="40" placeholder="enter your personal code" />
+          <input id="code-input" required minlength="4" maxlength="40" placeholder="enter account code (e.g. suki)" />
           <button type="submit">Open planner</button>
         </form>
+        <textarea id="sync-import" rows="3" placeholder="optional: paste sync code from another device"></textarea>
       </section>
 
       <section id="onboarding-view" class="card block hidden">
@@ -106,7 +107,12 @@
       <h3>Profile</h3>
       <p>Code: <strong id="profile-code"></strong></p>
       <p class="muted">Subjects are locked after first setup. English removed from available options.</p>
-      <button id="close-profile" type="button">Close</button>
+      <label class="muted" for="sync-code-output">Sync code (copy this and paste on another device):</label>
+      <textarea id="sync-code-output" rows="4" readonly></textarea>
+      <div class="profile-actions">
+        <button id="copy-sync-code" type="button">Copy sync code</button>
+        <button id="close-profile" type="button">Close</button>
+      </div>
     </dialog>
 
     <script src="./app.js" defer></script>

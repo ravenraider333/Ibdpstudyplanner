@@ -61,8 +61,36 @@ const localKey = (code) => `ibdp:${code}`;
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
 
+function encodeSyncCode(accountCode, profile) {
+  try {
+    const payload = JSON.stringify({ accountCode, profile: normalize(profile) });
+    return btoa(unescape(encodeURIComponent(payload)));
+  } catch {
+    return "";
+  }
+}
+
+function decodeSyncCode(raw) {
+  try {
+    const json = decodeURIComponent(escape(atob(raw.trim())));
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object") return null;
+    const accountCode = sanitize(parsed.accountCode || "");
+    if (!accountCode) return null;
+    return { accountCode, profile: normalize(parsed.profile) };
+  } catch {
+    return null;
+  }
+}
+
+function refreshSyncCodeOutput() {
+  const out = $("#sync-code-output");
+  if (!out || !state.code) return;
+  out.value = encodeSyncCode(state.code, state.profile);
+}
+
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
-function persist() { if (!state.code) return; state.profile.updatedAt = Date.now(); localSave(state.code, state.profile); setStatus("Saved locally on this device/browser."); }
+function persist() { if (!state.code) return; state.profile.updatedAt = Date.now(); localSave(state.code, state.profile); refreshSyncCodeOutput(); setStatus("Saved locally on this device/browser."); }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
 
 function getTasks() {
@@ -213,22 +241,41 @@ function drawTimer() { const m = String(Math.floor(state.timer / 60)).padStart(2
 function readCustomMinutes() { const parsed = Number($("#timer-custom").value.trim()); return Number.isFinite(parsed) && parsed >= 1 && parsed <= 180 ? parsed : null; }
 function applyMinutes(mins) { state.timer = mins * 60; state.timerState = "stopped"; drawTimer(); }
 
-async function login(codeRaw) {
+async function login(codeRaw, syncRaw = "") {
   const code = sanitize(codeRaw);
   if (!code) return;
+
+  const imported = syncRaw ? decodeSyncCode(syncRaw) : null;
+  if (syncRaw && !imported) { setStatus("Invalid sync code format. Paste the full sync code and try again."); return; }
+
   state.code = code;
   $("#profile-code").textContent = code;
   const local = normalize(localLoad(code));
-  if (local.updatedAt > 0) { state.profile = local; setStatus("Account loaded from this browser/device."); }
-  else { state.profile = defaultProfile(); setStatus("New account created on this browser/device."); }
+
+  if (local.updatedAt > 0) {
+    state.profile = local;
+    setStatus("Account loaded from this browser/device.");
+  } else if (imported && imported.accountCode === code) {
+    state.profile = normalize(imported.profile);
+    state.profile.updatedAt = Date.now();
+    setStatus("Account imported from sync code.");
+  } else if (imported && imported.accountCode !== code) {
+    setStatus(`Sync code belongs to '${imported.accountCode}'. Log in using that code name.`);
+    return;
+  } else {
+    state.profile = defaultProfile();
+    setStatus("New account created on this browser/device.");
+  }
+
   localSave(code, state.profile);
+  refreshSyncCodeOutput();
   if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
 }
 
 function bind() {
-  $("#auth-form").addEventListener("submit", (e) => { e.preventDefault(); login($("#code-input").value); });
+  $("#auth-form").addEventListener("submit", (e) => { e.preventDefault(); login($("#code-input").value, $("#sync-import").value); });
   $("#save-onboarding").addEventListener("click", () => {
     if (state.profile.onboarded) { setStatus("Subjects are locked for this account."); showView("#dashboard-view"); renderDashboard(); return; }
     const picked = collectSubjects();
@@ -242,9 +289,21 @@ function bind() {
     renderDashboard();
   });
 
-  $("#profile-btn").addEventListener("click", () => $("#profile-modal").showModal?.());
+  $("#profile-btn").addEventListener("click", () => { refreshSyncCodeOutput(); $("#profile-modal").showModal?.(); });
   $("#close-profile").addEventListener("click", () => $("#profile-modal").close());
-  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; showView("#auth-view"); drawTimer(); setStatus("Logged out."); });
+
+  $("#copy-sync-code").addEventListener("click", async () => {
+    refreshSyncCodeOutput();
+    const value = $("#sync-code-output").value;
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus("Sync code copied. Share it to use this account on another device.");
+    } catch {
+      setStatus("Copy failed. Manually copy the sync code text.");
+    }
+  });
+  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; $("#sync-code-output").value = ""; showView("#auth-view"); drawTimer(); setStatus("Logged out."); });
 
   document.querySelectorAll(".timer-preset").forEach((btn) => btn.addEventListener("click", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); btn.classList.add("active"); applyMinutes(Number(btn.dataset.mins)); }));
   $("#timer-custom").addEventListener("input", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); const mins = readCustomMinutes(); if (mins && !state.timerRef) applyMinutes(mins); });
