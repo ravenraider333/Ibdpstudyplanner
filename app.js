@@ -66,11 +66,12 @@ const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON
 async function remoteLoad(code) {
   try {
     const res = await fetch(apiUrl(code));
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, found: false, profile: null };
     const data = await res.json();
-    return data?.profile ? data.profile : null;
+    const profile = data?.profile ? normalize(data.profile) : null;
+    return { ok: true, found: Boolean(profile), profile };
   } catch {
-    return null;
+    return { ok: false, found: false, profile: null };
   }
 }
 
@@ -89,11 +90,12 @@ async function remoteSave(code, profile) {
 
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
 async function persist() {
-  if (!state.code) return;
+  if (!state.code) return false;
   state.profile.updatedAt = Date.now();
   localSave(state.code, state.profile);
   const synced = await remoteSave(state.code, state.profile);
-  setStatus(synced ? "Saved to shared account backend." : "Saved locally (backend unavailable).");
+  setStatus(synced ? "Saved to shared account backend." : "Save failed: backend not reachable. Use the same working backend URL on all devices.");
+  return synced;
 }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
 
@@ -270,23 +272,32 @@ async function login(codeRaw) {
 
   state.code = code;
   $("#profile-code").textContent = code;
-  const remote = normalize(await remoteLoad(code));
+  const remote = await remoteLoad(code);
   const local = normalize(localLoad(code));
 
-  if (remote.updatedAt >= local.updatedAt && remote.updatedAt > 0) {
-    state.profile = remote;
+  if (!remote.ok) {
+    if (local.updatedAt > 0) {
+      state.profile = local;
+      setStatus("Backend unreachable. Loaded this device's local copy only.");
+    } else {
+      state.code = "";
+      setStatus("Cannot reach shared backend. Fix backend deployment/URL, then retry to access shared accounts across devices.");
+      return;
+    }
+  } else if (remote.found) {
+    state.profile = remote.profile;
     setStatus("Shared account loaded from backend.");
   } else if (local.updatedAt > 0) {
     state.profile = local;
-    setStatus("Loaded local copy and will sync to backend.");
-    remoteSave(code, state.profile);
+    setStatus("No backend profile yet. Uploaded this device's saved copy.");
+    await remoteSave(code, state.profile);
   } else {
     state.profile = defaultProfile();
     setStatus("New shared account created.");
+    await remoteSave(code, state.profile);
   }
 
   localSave(code, state.profile);
-  remoteSave(code, state.profile);
   if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
