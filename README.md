@@ -2,6 +2,7 @@
 
 Updated planner includes:
 - Shared backend profile storage by code (`/api/profile/:code`) so typing the same code on any computer opens the same account
+- Automatic fallback cloud backend attempt when your own `/api` backend is not reachable
 - First-time-only subject setup (locked after save)
 - English removed from selectable course options
 - Left-side subject browser + right-side syllabus point panel

@@ -59,6 +59,16 @@ const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40)
 const LOCAL_SCHEMA_VERSION = "v2";
 const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
 const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
+const FALLBACK_API_BASE = "https://json.extendsclass.com/bin";
+function codeToId(code) {
+  let hash = 2166136261;
+  for (let i = 0; i < code.length; i += 1) {
+    hash ^= code.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `ibdp-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+const fallbackApiUrl = (code) => `${FALLBACK_API_BASE}/${codeToId(code)}`;
 
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
@@ -66,12 +76,21 @@ const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON
 async function remoteLoad(code) {
   try {
     const res = await fetch(apiUrl(code));
-    if (!res.ok) return { ok: false, found: false, profile: null };
+    if (res.ok) {
+      const data = await res.json();
+      const profile = data?.profile ? normalize(data.profile) : null;
+      return { ok: true, found: Boolean(profile), profile, source: "primary" };
+    }
+  } catch {}
+
+  try {
+    const res = await fetch(fallbackApiUrl(code));
+    if (!res.ok) return { ok: false, found: false, profile: null, source: "none" };
     const data = await res.json();
-    const profile = data?.profile ? normalize(data.profile) : null;
-    return { ok: true, found: Boolean(profile), profile };
+    const profile = data && typeof data === "object" && !Array.isArray(data) ? normalize(data) : null;
+    return { ok: true, found: Boolean(profile && profile.updatedAt > 0), profile, source: "fallback" };
   } catch {
-    return { ok: false, found: false, profile: null };
+    return { ok: false, found: false, profile: null, source: "none" };
   }
 }
 
@@ -82,9 +101,18 @@ async function remoteSave(code, profile) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profile }),
     });
-    return res.ok;
+    if (res.ok) return { ok: true, source: "primary" };
+  } catch {}
+
+  try {
+    const res = await fetch(fallbackApiUrl(code), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profile),
+    });
+    return { ok: res.ok, source: res.ok ? "fallback" : "none" };
   } catch {
-    return false;
+    return { ok: false, source: "none" };
   }
 }
 
@@ -93,9 +121,9 @@ async function persist() {
   if (!state.code) return false;
   state.profile.updatedAt = Date.now();
   localSave(state.code, state.profile);
-  const synced = await remoteSave(state.code, state.profile);
-  setStatus(synced ? "Saved to shared account backend." : "Save failed: backend not reachable. Use the same working backend URL on all devices.");
-  return synced;
+  const result = await remoteSave(state.code, state.profile);
+  setStatus(result.ok ? `Saved to shared backend (${result.source}).` : "Save failed: shared backend unavailable; saved locally only.");
+  return result.ok;
 }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
 
@@ -278,23 +306,22 @@ async function login(codeRaw) {
   if (!remote.ok) {
     if (local.updatedAt > 0) {
       state.profile = local;
-      setStatus("Backend unreachable. Loaded this device's local copy only.");
+      setStatus("Shared backend unreachable. Loaded this device's local copy.");
     } else {
-      state.code = "";
-      setStatus("Cannot reach shared backend. Fix backend deployment/URL, then retry to access shared accounts across devices.");
-      return;
+      state.profile = defaultProfile();
+      setStatus("Shared backend unreachable. Created local profile; it will sync once backend is reachable.");
     }
   } else if (remote.found) {
     state.profile = remote.profile;
-    setStatus("Shared account loaded from backend.");
+    setStatus(`Shared account loaded from ${remote.source} backend.`);
   } else if (local.updatedAt > 0) {
     state.profile = local;
-    setStatus("No backend profile yet. Uploaded this device's saved copy.");
-    await remoteSave(code, state.profile);
+    const upload = await remoteSave(code, state.profile);
+    setStatus(upload.ok ? `No backend profile yet. Uploaded local copy to ${upload.source}.` : "No backend profile yet. Loaded local copy, upload pending.");
   } else {
     state.profile = defaultProfile();
-    setStatus("New shared account created.");
-    await remoteSave(code, state.profile);
+    const upload = await remoteSave(code, state.profile);
+    setStatus(upload.ok ? `New shared account created on ${upload.source} backend.` : "New local account created; sync pending until backend is reachable.");
   }
 
   localSave(code, state.profile);
