@@ -55,12 +55,17 @@ const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], 
 const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped", activeSubject: null };
 
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
+function setSyncState(mode, text) {
+  const el = $("#sync-state");
+  if (!el) return;
+  el.className = `sync-state ${mode}`;
+  el.textContent = text;
+}
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 const LOCAL_SCHEMA_VERSION = "v2";
 const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
 const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
-const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
-const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
+const localSave = (code, profile) => { try { localStorage.setItem(localKey(code), JSON.stringify(profile)); } catch {} };
 
 const BACKEND_SOURCES = [
   {
@@ -129,9 +134,15 @@ function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, co
 async function persist() {
   if (!state.code) return false;
   state.profile.updatedAt = Date.now();
-  localSave(state.code, state.profile);
   const result = await remoteSave(state.code, state.profile);
-  setStatus(result.ok ? "Saved to shared backend." : "Save failed: shared backend unavailable; saved locally only.");
+  if (result.ok) {
+    localSave(state.code, state.profile); // cache only (non-authoritative)
+    setStatus("Saved to shared backend.");
+    setSyncState("synced", "Synced");
+  } else {
+    setStatus("Save failed: backend unavailable. Changes are not shared yet.");
+    setSyncState("unsynced", "Unsynced / offline");
+  }
   return result.ok;
 }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
@@ -307,40 +318,72 @@ async function login(codeRaw) {
   const code = sanitize(codeRaw);
   if (!code) return;
 
-  state.code = code;
-  $("#profile-code").textContent = code;
   const remote = await remoteLoad(code);
-  const local = normalize(localLoad(code));
-
   if (!remote.ok) {
-    if (local.updatedAt > 0) {
-      state.profile = local;
-      setStatus("Using local copy for now (shared sync temporarily unavailable).");
-    } else {
-      state.profile = defaultProfile();
-      setStatus("Logged in locally. Sync will happen automatically when any backend is reachable.");
-    }
-  } else if (remote.found) {
-    state.profile = remote.profile;
-    setStatus(`Shared account loaded from ${remote.source} backend (checked: ${remote.sources.join(", ") || "none"}).`);
-  } else if (local.updatedAt > 0) {
-    state.profile = local;
-    const upload = await remoteSave(code, state.profile);
-    setStatus(upload.ok ? `No backend profile yet. Uploaded local copy to ${upload.source}.` : "No backend profile yet. Loaded local copy; sync pending.");
-  } else {
-    state.profile = defaultProfile();
-    const upload = await remoteSave(code, state.profile);
-    setStatus(upload.ok ? `New shared account created on ${upload.source} backend.` : "New account created locally; sync pending.");
+    setStatus("Backend unavailable. Cannot log in right now.");
+    setSyncState("unsynced", "Offline");
+    return;
   }
 
-  localSave(code, state.profile);
+  if (!remote.found) {
+    setStatus("No account found for this code. Use Create account.");
+    setSyncState("unsynced", "No account");
+    return;
+  }
+
+  state.code = code;
+  $("#profile-code").textContent = code;
+  state.profile = remote.profile;
+  localSave(code, state.profile); // cache only (non-authoritative)
+  setStatus("Logged into existing shared account.");
+  setSyncState("synced", "Synced");
+
   if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
 }
 
+async function createAccount(codeRaw) {
+  const code = sanitize(codeRaw);
+  if (!code) return;
+
+  const remote = await remoteLoad(code);
+  if (!remote.ok) {
+    setStatus("Backend unavailable. Cannot create account right now.");
+    setSyncState("unsynced", "Offline");
+    return;
+  }
+
+  if (remote.found) {
+    setStatus("An account with this code already exists. Use Log in.");
+    setSyncState("unsynced", "Account exists");
+    return;
+  }
+
+  state.code = code;
+  $("#profile-code").textContent = code;
+  state.profile = defaultProfile();
+  state.profile.updatedAt = Date.now();
+
+  const created = await remoteSave(code, state.profile);
+  if (!created.ok) {
+    state.code = "";
+    setStatus("Create failed: backend unavailable.");
+    setSyncState("unsynced", "Create failed");
+    return;
+  }
+
+  localSave(code, state.profile); // cache only (non-authoritative)
+  setStatus("Account created on shared backend.");
+  setSyncState("synced", "Synced");
+  renderSubjectPicker();
+  showView("#onboarding-view");
+}
+
 function bind() {
-  $("#auth-form").addEventListener("submit", (e) => { e.preventDefault(); login($("#code-input").value); });
+  $("#auth-form").addEventListener("submit", (e) => e.preventDefault());
+  $("#login-btn").addEventListener("click", () => login($("#code-input").value));
+  $("#create-btn").addEventListener("click", () => createAccount($("#code-input").value));
   $("#save-onboarding").addEventListener("click", () => {
     if (state.profile.onboarded) { setStatus("Subjects are locked for this account."); showView("#dashboard-view"); renderDashboard(); return; }
     const picked = collectSubjects();
@@ -356,7 +399,7 @@ function bind() {
 
   $("#profile-btn").addEventListener("click", () => $("#profile-modal").showModal?.());
   $("#close-profile").addEventListener("click", () => $("#profile-modal").close());
-  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; showView("#auth-view"); drawTimer(); setStatus("Logged out."); });
+  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; showView("#auth-view"); drawTimer(); setStatus("Logged out."); setSyncState("unsynced", "Not connected"); });
 
   document.querySelectorAll(".timer-preset").forEach((btn) => btn.addEventListener("click", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); btn.classList.add("active"); applyMinutes(Number(btn.dataset.mins)); }));
   $("#timer-custom").addEventListener("input", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); const mins = readCustomMinutes(); if (mins && !state.timerRef) applyMinutes(mins); });
@@ -386,6 +429,7 @@ function bind() {
 function init() {
   bind();
   showView("#auth-view");
+  setSyncState("unsynced", "Not connected");
   $("#countdown-date").textContent = EXAM_DATE.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
   tickCountdown();
   drawTimer();

@@ -14,6 +14,7 @@
           <h1>Study Planner</h1>
           <p class="muted">Track your IB syllabus with daily focus picks, progress bars, and unit badges.</p>
           <p id="status" class="muted">Ready.</p>
+          <p id="sync-state" class="sync-state unsynced">Not connected</p>
         </div>
         <div class="hero-actions">
           <button id="profile-btn" class="ghost" type="button">Profile</button>
@@ -22,11 +23,12 @@
       </header>
 
       <section id="auth-view" class="card block">
-        <h2>Log in with your code</h2>
-        <p class="muted">Just type the same code name on any device (example: suki) to open the same shared account.</p>
+        <h2>Account access</h2>
+        <p class="muted">Use your code to either log into an existing account or explicitly create a new one.</p>
         <form id="auth-form" class="auth-row">
           <input id="code-input" required minlength="4" maxlength="40" placeholder="enter account code (e.g. suki)" />
-          <button type="submit">Open planner</button>
+          <button id="login-btn" type="button">Log in</button>
+          <button id="create-btn" class="ghost" type="button">Create account</button>
         </form>
       </section>
 

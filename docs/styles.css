@@ -19,6 +19,9 @@ body { margin: 0; color: var(--text); font-family: Inter, system-ui, -apple-syst
 .hero h1 { margin: .3rem 0; font-size: clamp(2rem, 4vw, 3.2rem); }
 .chip { display: inline-block; background: rgba(140,133,255,.25); color: #d8ccff; border-radius: 999px; padding: .35rem .7rem; font-weight: 700; }
 .muted { color: var(--muted); }
+.sync-state { display: inline-block; margin-top: .45rem; padding: .18rem .55rem; border-radius: 999px; font-size: .78rem; border: 1px solid var(--line); }
+.sync-state.synced { color: #d7ffee; border-color: rgba(139,217,191,.55); background: rgba(139,217,191,.14); }
+.sync-state.unsynced { color: #ffe6b5; border-color: rgba(229,197,140,.55); background: rgba(229,197,140,.12); }
 .hero-actions { display: flex; gap: .6rem; }
 .hidden { display: none; }
 button, input, select, textarea { background: var(--panel-soft); color: var(--text); border: 1px solid var(--line); border-radius: 11px; padding: .55rem .75rem; }
