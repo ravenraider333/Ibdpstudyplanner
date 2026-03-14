@@ -19,3 +19,9 @@ node server.js
 Open `http://localhost:4173/`.
 
 > If you only host the static files (for example plain GitHub Pages), the shared backend endpoint will not exist. Deploy with `server.js` (or equivalent backend) for cross-computer syncing by code.
+
+
+## Account reset in this release
+
+- Existing stored accounts are cleared once when this server version boots (requested reset).
+- After that one-time reset, accounts save normally and sync across devices by code.

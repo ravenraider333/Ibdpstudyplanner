@@ -6,6 +6,7 @@ const PORT = Number(process.env.PORT || 4173);
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
 const DB_PATH = path.join(DATA_DIR, 'profiles.json');
+const RESET_MARKER = 'reset-accounts-2026-03-14';
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(DB_PATH)) fs.writeFileSync(DB_PATH, '{}');
@@ -34,6 +35,12 @@ function readDb() {
 
 function writeDb(db) {
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+}
+
+function ensureResetApplied() {
+  const db = readDb();
+  if (db.__resetMarker === RESET_MARKER) return;
+  writeDb({ __resetMarker: RESET_MARKER });
 }
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
@@ -83,6 +90,7 @@ const server = http.createServer((req, res) => {
           if (!profile || typeof profile !== 'object') return send(res, 400, JSON.stringify({ error: 'Missing profile' }));
           const db = readDb();
           db[code] = profile;
+          db.__resetMarker = RESET_MARKER;
           writeDb(db);
           return send(res, 200, JSON.stringify({ ok: true }));
         } catch {
@@ -98,6 +106,7 @@ const server = http.createServer((req, res) => {
   serveFile(url.pathname, res);
 });
 
+ensureResetApplied();
 server.listen(PORT, () => {
   console.log(`IBDP planner server running on http://localhost:${PORT}`);
 });

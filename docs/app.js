@@ -56,7 +56,8 @@ const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: n
 
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
-const localKey = (code) => `ibdp:${code}`;
+const LOCAL_SCHEMA_VERSION = "v2";
+const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
 const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
 
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
