@@ -2,7 +2,6 @@
 
 Updated planner includes:
 - Shared backend profile storage by code (`/api/profile/:code`) so typing the same code on any computer opens the same account
-- Automatic fallback cloud backend attempt when your own `/api` backend is not reachable
 - First-time-only subject setup (locked after save)
 - English removed from selectable course options
 - Left-side subject browser + right-side syllabus point panel
@@ -19,7 +18,7 @@ node server.js
 
 Open `http://localhost:4173/`.
 
-> If you only host the static files (for example plain GitHub Pages), the shared backend endpoint will not exist. Deploy with `server.js` (or equivalent backend) for cross-computer syncing by code.
+> Cross-device login works only when both devices use the same running `server.js` backend URL (not a static-only Pages URL).
 
 
 ## Shared login requirement

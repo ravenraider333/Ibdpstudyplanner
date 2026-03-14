@@ -59,17 +59,6 @@ const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40)
 const LOCAL_SCHEMA_VERSION = "v2";
 const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
 const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
-const FALLBACK_API_BASE = "https://json.extendsclass.com/bin";
-function codeToId(code) {
-  let hash = 2166136261;
-  for (let i = 0; i < code.length; i += 1) {
-    hash ^= code.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `ibdp-${(hash >>> 0).toString(16).padStart(8, "0")}`;
-}
-const fallbackApiUrl = (code) => `${FALLBACK_API_BASE}/${codeToId(code)}`;
-
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
 
@@ -79,24 +68,6 @@ const BACKEND_SOURCES = [
     readUrl: (code) => apiUrl(code),
     writeUrl: (code) => apiUrl(code),
     wrapWrite: true,
-  },
-  {
-    name: "fallback",
-    readUrl: (code) => fallbackApiUrl(code),
-    writeUrl: (code) => fallbackApiUrl(code),
-    wrapWrite: false,
-  },
-  {
-    name: "jsonblob",
-    readUrl: (code) => `https://jsonblob.com/api/jsonBlob/${codeToId(code)}`,
-    writeUrl: (code) => `https://jsonblob.com/api/jsonBlob/${codeToId(code)}`,
-    wrapWrite: false,
-  },
-  {
-    name: "jsonstorage",
-    readUrl: (code) => `https://api.jsonstorage.net/v1/json/${codeToId(code)}`,
-    writeUrl: (code) => `https://api.jsonstorage.net/v1/json/${codeToId(code)}`,
-    wrapWrite: false,
   },
 ];
 
@@ -160,7 +131,7 @@ async function persist() {
   state.profile.updatedAt = Date.now();
   localSave(state.code, state.profile);
   const result = await remoteSave(state.code, state.profile);
-  setStatus(result.ok ? `Saved to shared backend (${result.sources.join(", ")}).` : "Save failed: shared backend unavailable; saved locally only.");
+  setStatus(result.ok ? "Saved to shared backend." : "Save failed: shared backend unavailable; saved locally only.");
   return result.ok;
 }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
