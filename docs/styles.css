@@ -22,6 +22,12 @@ body { margin: 0; color: var(--text); font-family: Inter, system-ui, -apple-syst
 .sync-state { display: inline-block; margin-top: .45rem; padding: .18rem .55rem; border-radius: 999px; font-size: .78rem; border: 1px solid var(--line); }
 .sync-state.synced { color: #d7ffee; border-color: rgba(139,217,191,.55); background: rgba(139,217,191,.14); }
 .sync-state.unsynced { color: #ffe6b5; border-color: rgba(229,197,140,.55); background: rgba(229,197,140,.12); }
+.pending-banner {
+  border-color: rgba(231,163,173,.55);
+  background: linear-gradient(180deg, rgba(64, 28, 44, .55), rgba(37, 22, 39, .5));
+}
+.pending-banner h3 { margin: 0 0 .35rem; color: #ffd9df; }
+.pending-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .45rem; }
 .hero-actions { display: flex; gap: .6rem; }
 .hidden { display: none; }
 button, input, select, textarea { background: var(--panel-soft); color: var(--text); border: 1px solid var(--line); border-radius: 11px; padding: .55rem .75rem; }

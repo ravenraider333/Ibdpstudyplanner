@@ -40,6 +40,16 @@
       </section>
 
       <main id="dashboard-view" class="hidden">
+        <section id="pending-banner" class="card pending-banner hidden">
+          <h3>⚠ Unsynced changes on this device</h3>
+          <p class="muted">Account <strong id="pending-code"></strong> has pending edits saved locally as a draft (last update: <span id="pending-time">just now</span>). These are <strong>not</strong> in the shared backend yet.</p>
+          <div class="pending-actions">
+            <button id="retry-sync" type="button">Sync now</button>
+            <button id="apply-draft" class="ghost" type="button">Load local draft</button>
+            <button id="discard-draft" class="ghost" type="button">Discard local draft</button>
+          </div>
+        </section>
+
         <section class="grid top-grid">
           <article class="card workspace">
             <h3>Task selector</h3>

@@ -52,7 +52,7 @@ const SUBJECTS = Object.keys(syllabusCatalog);
 const $ = (s) => document.querySelector(s);
 const dayStamp = () => new Date().toISOString().slice(0, 10);
 const defaultProfile = () => ({ selectedSubjects: {}, completed: {}, today: [], onboarded: false, updatedAt: 0, dayStamp: dayStamp() });
-const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped", activeSubject: null };
+const state = { code: "", profile: defaultProfile(), timer: 25 * 60, timerRef: null, timerState: "stopped", activeSubject: null, pendingChanges: false };
 
 const setStatus = (m) => { const e = $("#status"); if (e) e.textContent = m; };
 function setSyncState(mode, text) {
@@ -66,6 +66,25 @@ const LOCAL_SCHEMA_VERSION = "v2";
 const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
 const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
 const localSave = (code, profile) => { try { localStorage.setItem(localKey(code), JSON.stringify(profile)); } catch {} };
+const DRAFT_SCHEMA_VERSION = "v1";
+const draftKey = (code) => `ibdp:draft:${DRAFT_SCHEMA_VERSION}:${code}`;
+const savePendingDraft = (code, profile) => {
+  try {
+    localStorage.setItem(draftKey(code), JSON.stringify({ profile, savedAt: Date.now() }));
+  } catch {}
+};
+const loadPendingDraft = (code) => {
+  try {
+    const raw = localStorage.getItem(draftKey(code));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.profile) return null;
+    return { profile: normalize(parsed.profile), savedAt: Number(parsed.savedAt || 0) };
+  } catch {
+    return null;
+  }
+};
+const clearPendingDraft = (code) => { try { localStorage.removeItem(draftKey(code)); } catch {} };
 
 const BACKEND_SOURCES = [
   {
@@ -131,17 +150,46 @@ async function remoteSave(code, profile) {
 }
 
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
+
+function renderPendingBanner() {
+  const banner = $("#pending-banner");
+  if (!banner) return;
+  if (!state.code || !state.pendingChanges) {
+    banner.classList.add("hidden");
+    return;
+  }
+  $("#pending-code").textContent = state.code;
+  const draft = loadPendingDraft(state.code);
+  const when = draft?.savedAt ? new Date(draft.savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "just now";
+  $("#pending-time").textContent = when;
+  banner.classList.remove("hidden");
+}
+
+function markPending() {
+  state.pendingChanges = true;
+  if (state.code) savePendingDraft(state.code, state.profile);
+  setSyncState("unsynced", "Unsynced / offline");
+  renderPendingBanner();
+}
+
+function clearPending() {
+  if (state.code) clearPendingDraft(state.code);
+  state.pendingChanges = false;
+  renderPendingBanner();
+}
+
 async function persist() {
   if (!state.code) return false;
   state.profile.updatedAt = Date.now();
   const result = await remoteSave(state.code, state.profile);
   if (result.ok) {
     localSave(state.code, state.profile); // cache only (non-authoritative)
+    clearPending();
     setStatus("Saved to shared backend.");
     setSyncState("synced", "Synced");
   } else {
-    setStatus("Save failed: backend unavailable. Changes are not shared yet.");
-    setSyncState("unsynced", "Unsynced / offline");
+    markPending();
+    setStatus("Save failed: backend unavailable. Changes are pending and not shared yet.");
   }
   return result.ok;
 }
@@ -335,10 +383,18 @@ async function login(codeRaw) {
   $("#profile-code").textContent = code;
   state.profile = remote.profile;
   localSave(code, state.profile); // cache only (non-authoritative)
-  setStatus("Logged into existing shared account.");
-  setSyncState("synced", "Synced");
 
-  if (!state.profile.onboarded) { renderSubjectPicker(); showView("#onboarding-view"); return; }
+  const pendingDraft = loadPendingDraft(code);
+  state.pendingChanges = Boolean(pendingDraft);
+  if (pendingDraft) {
+    setStatus("Logged in. Local unsynced draft exists on this device; review/apply it manually.");
+    setSyncState("unsynced", "Draft pending");
+  } else {
+    setStatus("Logged into existing shared account.");
+    setSyncState("synced", "Synced");
+  }
+
+  if (!state.profile.onboarded) { renderPendingBanner(); renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
 }
@@ -374,8 +430,10 @@ async function createAccount(codeRaw) {
   }
 
   localSave(code, state.profile); // cache only (non-authoritative)
+  clearPending();
   setStatus("Account created on shared backend.");
   setSyncState("synced", "Synced");
+  renderPendingBanner();
   renderSubjectPicker();
   showView("#onboarding-view");
 }
@@ -399,7 +457,28 @@ function bind() {
 
   $("#profile-btn").addEventListener("click", () => $("#profile-modal").showModal?.());
   $("#close-profile").addEventListener("click", () => $("#profile-modal").close());
-  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; showView("#auth-view"); drawTimer(); setStatus("Logged out."); setSyncState("unsynced", "Not connected"); });
+  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; state.pendingChanges = false; showView("#auth-view"); drawTimer(); renderPendingBanner(); setStatus("Logged out."); setSyncState("unsynced", "Not connected"); });
+  $("#retry-sync").addEventListener("click", () => { if (!state.code) return; persist(); });
+  $("#apply-draft").addEventListener("click", () => {
+    if (!state.code) return;
+    const draft = loadPendingDraft(state.code);
+    if (!draft) { setStatus("No local pending draft found."); state.pendingChanges = false; renderPendingBanner(); return; }
+    state.profile = draft.profile;
+    markPending();
+    setStatus("Loaded local pending draft (still not synced). Click Sync now to upload.");
+    renderDashboard();
+  });
+  $("#discard-draft").addEventListener("click", () => {
+    if (!state.code) return;
+    clearPending();
+    setStatus("Local pending draft discarded. You are viewing backend data.");
+    setSyncState("synced", "Synced");
+  });
+  window.addEventListener("beforeunload", (event) => {
+    if (!state.pendingChanges) return;
+    event.preventDefault();
+    event.returnValue = "You have unsynced changes that are only stored on this device.";
+  });
 
   document.querySelectorAll(".timer-preset").forEach((btn) => btn.addEventListener("click", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); btn.classList.add("active"); applyMinutes(Number(btn.dataset.mins)); }));
   $("#timer-custom").addEventListener("input", () => { document.querySelectorAll(".timer-preset").forEach((b) => b.classList.remove("active")); const mins = readCustomMinutes(); if (mins && !state.timerRef) applyMinutes(mins); });
@@ -430,6 +509,7 @@ function init() {
   bind();
   showView("#auth-view");
   setSyncState("unsynced", "Not connected");
+  renderPendingBanner();
   $("#countdown-date").textContent = EXAM_DATE.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
   tickCountdown();
   drawTimer();
