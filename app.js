@@ -73,47 +73,72 @@ const fallbackApiUrl = (code) => `${FALLBACK_API_BASE}/${codeToId(code)}`;
 const localLoad = (code) => { try { return JSON.parse(localStorage.getItem(localKey(code)) || "null"); } catch { return null; } };
 const localSave = (code, p) => { try { localStorage.setItem(localKey(code), JSON.stringify(p)); } catch {} };
 
-async function remoteLoad(code) {
-  try {
-    const res = await fetch(apiUrl(code));
-    if (res.ok) {
-      const data = await res.json();
-      const profile = data?.profile ? normalize(data.profile) : null;
-      return { ok: true, found: Boolean(profile), profile, source: "primary" };
-    }
-  } catch {}
+const BACKEND_SOURCES = [
+  {
+    name: "primary",
+    readUrl: (code) => apiUrl(code),
+    writeUrl: (code) => apiUrl(code),
+    wrapWrite: true,
+  },
+  {
+    name: "fallback",
+    readUrl: (code) => fallbackApiUrl(code),
+    writeUrl: (code) => fallbackApiUrl(code),
+    wrapWrite: false,
+  },
+  {
+    name: "jsonblob",
+    readUrl: (code) => `https://jsonblob.com/api/jsonBlob/${codeToId(code)}`,
+    writeUrl: (code) => `https://jsonblob.com/api/jsonBlob/${codeToId(code)}`,
+    wrapWrite: false,
+  },
+  {
+    name: "jsonstorage",
+    readUrl: (code) => `https://api.jsonstorage.net/v1/json/${codeToId(code)}`,
+    writeUrl: (code) => `https://api.jsonstorage.net/v1/json/${codeToId(code)}`,
+    wrapWrite: false,
+  },
+];
 
-  try {
-    const res = await fetch(fallbackApiUrl(code));
-    if (!res.ok) return { ok: false, found: false, profile: null, source: "none" };
-    const data = await res.json();
-    const profile = data && typeof data === "object" && !Array.isArray(data) ? normalize(data) : null;
-    return { ok: true, found: Boolean(profile && profile.updatedAt > 0), profile, source: "fallback" };
-  } catch {
-    return { ok: false, found: false, profile: null, source: "none" };
+function extractProfile(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.profile && typeof payload.profile === "object") return normalize(payload.profile);
+  if (payload.data && typeof payload.data === "object") {
+    if (payload.data.profile && typeof payload.data.profile === "object") return normalize(payload.data.profile);
+    if (payload.data.selectedSubjects || payload.data.completed || payload.data.onboarded !== undefined) return normalize(payload.data);
   }
+  if (payload.record && typeof payload.record === "object") return normalize(payload.record);
+  if (payload.selectedSubjects || payload.completed || payload.onboarded !== undefined) return normalize(payload);
+  return null;
+}
+
+async function remoteLoad(code) {
+  for (const source of BACKEND_SOURCES) {
+    try {
+      const res = await fetch(source.readUrl(code));
+      if (!res.ok) continue;
+      const data = await res.json();
+      const profile = extractProfile(data);
+      if (profile) return { ok: true, found: profile.updatedAt > 0 || profile.onboarded || Object.keys(profile.selectedSubjects || {}).length > 0, profile, source: source.name };
+      return { ok: true, found: false, profile: null, source: source.name };
+    } catch {}
+  }
+  return { ok: false, found: false, profile: null, source: "none" };
 }
 
 async function remoteSave(code, profile) {
-  try {
-    const res = await fetch(apiUrl(code), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profile }),
-    });
-    if (res.ok) return { ok: true, source: "primary" };
-  } catch {}
-
-  try {
-    const res = await fetch(fallbackApiUrl(code), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    return { ok: res.ok, source: res.ok ? "fallback" : "none" };
-  } catch {
-    return { ok: false, source: "none" };
+  for (const source of BACKEND_SOURCES) {
+    try {
+      const body = source.wrapWrite ? JSON.stringify({ profile }) : JSON.stringify(profile);
+      const res = await fetch(source.writeUrl(code), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (res.ok) return { ok: true, source: source.name };
+    } catch {}
   }
+  return { ok: false, source: "none" };
 }
 
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
@@ -306,10 +331,10 @@ async function login(codeRaw) {
   if (!remote.ok) {
     if (local.updatedAt > 0) {
       state.profile = local;
-      setStatus("Shared backend unreachable. Loaded this device's local copy.");
+      setStatus("Using local copy for now (shared sync temporarily unavailable).");
     } else {
       state.profile = defaultProfile();
-      setStatus("Shared backend unreachable. Created local profile; it will sync once backend is reachable.");
+      setStatus("Logged in locally. Sync will happen automatically when any backend is reachable.");
     }
   } else if (remote.found) {
     state.profile = remote.profile;
@@ -317,11 +342,11 @@ async function login(codeRaw) {
   } else if (local.updatedAt > 0) {
     state.profile = local;
     const upload = await remoteSave(code, state.profile);
-    setStatus(upload.ok ? `No backend profile yet. Uploaded local copy to ${upload.source}.` : "No backend profile yet. Loaded local copy, upload pending.");
+    setStatus(upload.ok ? `No backend profile yet. Uploaded local copy to ${upload.source}.` : "No backend profile yet. Loaded local copy; sync pending.");
   } else {
     state.profile = defaultProfile();
     const upload = await remoteSave(code, state.profile);
-    setStatus(upload.ok ? `New shared account created on ${upload.source} backend.` : "New local account created; sync pending until backend is reachable.");
+    setStatus(upload.ok ? `New shared account created on ${upload.source} backend.` : "New account created locally; sync pending.");
   }
 
   localSave(code, state.profile);
