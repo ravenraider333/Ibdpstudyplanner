@@ -61,10 +61,34 @@ function setSyncState(mode, text) {
   el.className = `sync-state ${mode}`;
   el.textContent = text;
 }
+function setHeaderAuthActionsEnabled(enabled) {
+  const profileBtn = $("#profile-btn");
+  const logoutBtn = $("#logout-btn");
+  if (!profileBtn || !logoutBtn) return;
+  profileBtn.disabled = !enabled;
+  logoutBtn.disabled = !enabled;
+  profileBtn.setAttribute("aria-hidden", enabled ? "false" : "true");
+  logoutBtn.setAttribute("aria-hidden", enabled ? "false" : "true");
+}
 const sanitize = (c) => c.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 const LOCAL_SCHEMA_VERSION = "v2";
 const localKey = (code) => `ibdp:${LOCAL_SCHEMA_VERSION}:${code}`;
-const apiUrl = (code) => `/api/profile/${encodeURIComponent(code)}`;
+const normalizeBackendBaseUrl = (raw) => {
+  const val = String(raw || "").trim();
+  if (!val) return "";
+  return val.replace(/\/+$/, "");
+};
+const resolveBackendBaseUrl = () => {
+  const fromWindow = normalizeBackendBaseUrl(window.IBDP_BACKEND_BASE_URL);
+  if (fromWindow) return fromWindow;
+  const fromMeta = normalizeBackendBaseUrl(document.querySelector('meta[name="ibdp-backend-base-url"]')?.content);
+  return fromMeta;
+};
+const BACKEND_BASE_URL = resolveBackendBaseUrl();
+const apiUrl = (code) => {
+  const path = `/api/profile/${encodeURIComponent(code)}`;
+  return BACKEND_BASE_URL ? `${BACKEND_BASE_URL}${path}` : path;
+};
 const localSave = (code, profile) => { try { localStorage.setItem(localKey(code), JSON.stringify(profile)); } catch {} };
 const DRAFT_SCHEMA_VERSION = "v1";
 const draftKey = (code) => `ibdp:draft:${DRAFT_SCHEMA_VERSION}:${code}`;
@@ -394,6 +418,7 @@ async function login(codeRaw) {
     setSyncState("synced", "Synced");
   }
 
+  setHeaderAuthActionsEnabled(true);
   if (!state.profile.onboarded) { renderPendingBanner(); renderSubjectPicker(); showView("#onboarding-view"); return; }
   showView("#dashboard-view");
   renderDashboard();
@@ -431,6 +456,7 @@ async function createAccount(codeRaw) {
 
   localSave(code, state.profile); // cache only (non-authoritative)
   clearPending();
+  setHeaderAuthActionsEnabled(true);
   setStatus("Account created on shared backend.");
   setSyncState("synced", "Synced");
   renderPendingBanner();
@@ -457,7 +483,7 @@ function bind() {
 
   $("#profile-btn").addEventListener("click", () => $("#profile-modal").showModal?.());
   $("#close-profile").addEventListener("click", () => $("#profile-modal").close());
-  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; state.pendingChanges = false; showView("#auth-view"); drawTimer(); renderPendingBanner(); setStatus("Logged out."); setSyncState("unsynced", "Not connected"); });
+  $("#logout-btn").addEventListener("click", () => { if (state.timerRef) clearInterval(state.timerRef); state.timerRef = null; state.timerState = "stopped"; state.code = ""; state.profile = defaultProfile(); state.activeSubject = null; state.pendingChanges = false; showView("#auth-view"); drawTimer(); renderPendingBanner(); setHeaderAuthActionsEnabled(false); setStatus("Logged out."); setSyncState("unsynced", "Not connected"); });
   $("#retry-sync").addEventListener("click", () => { if (!state.code) return; persist(); });
   $("#apply-draft").addEventListener("click", () => {
     if (!state.code) return;
@@ -509,6 +535,7 @@ function init() {
   bind();
   showView("#auth-view");
   setSyncState("unsynced", "Not connected");
+  setHeaderAuthActionsEnabled(false);
   renderPendingBanner();
   $("#countdown-date").textContent = EXAM_DATE.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
   tickCountdown();

@@ -10,7 +10,7 @@ Updated planner includes:
 - Daily 3-topic selector that auto-resets each new day
 - Timer presets/custom input, pause/start/reset, and color state feedback
 
-## Run
+## Run (single-origin local mode)
 
 ```bash
 node server.js
@@ -18,10 +18,27 @@ node server.js
 
 Open `http://localhost:4173/`.
 
-> Cross-device login works only when both devices use the same running `server.js` backend URL (not a static-only Pages URL).
+## Backend URL configuration
 
+Frontend API default is same-origin (`/api/profile/:code`), which is correct when using `node server.js`.
+
+For split hosting (static frontend + separately hosted backend), set a backend base URL in either way:
+
+1. In HTML meta (recommended):
+
+```html
+<meta name="ibdp-backend-base-url" content="https://your-backend.example.com" />
+```
+
+2. Or before `app.js` load:
+
+```html
+<script>window.IBDP_BACKEND_BASE_URL = "https://your-backend.example.com";</script>
+```
+
+Trailing slashes are normalized automatically.
 
 ## Shared login requirement
 
-- Both devices must open the planner against the same backend deployment URL for shared code accounts to match.
-- If you open one device on GitHub Pages static URL and another on a Node backend URL, they will not share the same account store.
+- Both devices must use the same backend deployment URL for shared code accounts to match.
+- If using split frontend/backend hosting, backend must allow CORS for the frontend origin.
