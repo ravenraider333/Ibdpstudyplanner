@@ -1,8 +1,7 @@
 # IB DP Study Planner
 
 Updated planner includes:
-- Personal code accounts saved in browser local storage
-- Optional portable sync code export/import to move the same account between devices
+- Shared backend profile storage by code (`/api/profile/:code`) so typing the same code on any computer opens the same account
 - First-time-only subject setup (locked after save)
 - English removed from selectable course options
 - Left-side subject browser + right-side syllabus point panel
@@ -14,7 +13,9 @@ Updated planner includes:
 ## Run
 
 ```bash
-python3 -m http.server 4173
+node server.js
 ```
 
-Open `http://localhost:4173/` or `http://localhost:4173/docs/`.
+Open `http://localhost:4173/`.
+
+> If you only host the static files (for example plain GitHub Pages), the shared backend endpoint will not exist. Deploy with `server.js` (or equivalent backend) for cross-computer syncing by code.

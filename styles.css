@@ -27,7 +27,6 @@ button { cursor: pointer; font-weight: 700; }
 .danger { border-color: rgba(231,163,173,.75); color: #ffe0e6; }
 .auth-row { display: flex; gap: .6rem; flex-wrap: wrap; }
 .auth-row input { min-width: 260px; }
-#sync-import { width: 100%; margin-top: .6rem; min-height: 84px; resize: vertical; }
 .right { display: flex; justify-content: flex-end; margin-top: .8rem; }
 
 .grid { display: grid; gap: 1rem; margin-top: 1rem; }
@@ -133,6 +132,3 @@ dialog { border-radius: 14px; border: 1px solid var(--line); background: #1f3151
   .selector-layout { grid-template-columns: 1fr; }
 }
 
-
-#sync-code-output { width: 100%; margin-top: .4rem; min-height: 110px; resize: vertical; }
-.profile-actions { display: flex; gap: .5rem; margin-top: .6rem; justify-content: flex-end; }
