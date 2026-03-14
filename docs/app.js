@@ -1,5 +1,5 @@
 const EXAM_DATE = new Date("2026-04-27T09:00:00");
-const BACKEND_URL = "https://jsonblob.com/api/jsonBlob";
+const BACKEND_URL = "https://api.jsonstorage.net/v1/json";
 const t = (name, hlOnly = false) => ({ name, hlOnly });
 
 const syllabusCatalog = {
@@ -7,7 +7,38 @@ const syllabusCatalog = {
   Biology: { units: { A: [t("A1.1 Water"), t("A1.2 Nucleic acids"), t("A2.1 Origins of cells", true), t("A2.2 Cell structure"), t("A2.3 Viruses", true), t("A3.1 Diversity of organisms"), t("A3.2 Classification and cladistics", true), t("A4.1 Evolution and speciation"), t("A4.2 Conservation of biodiversity")], B: [t("B1.1 Carbohydrates and lipids"), t("B1.2 Proteins"), t("B2.1 Membranes and membrane transport"), t("B2.2 Organelles and compartmentalization"), t("B2.3 Cell specialization"), t("B3.1 Gas exchange"), t("B3.2 Transport"), t("B3.3 Muscle and motility", true), t("B4.1 Adaptation to environment"), t("B4.2 Ecological niches")], C: [t("C1.1 Enzymes and metabolism"), t("C1.2 Cell respiration"), t("C1.3 Photosynthesis"), t("C2.1 Chemical signalling", true), t("C2.2 Neural signalling"), t("C3.1 Integration of body systems"), t("C3.2 Defence against disease"), t("C4.1 Populations and communities"), t("C4.2 Transfers of energy and matter")], D: [t("D1.1 DNA replication"), t("D1.2 Protein synthesis"), t("D1.3 Mutation and gene editing"), t("D2.1 Cell and nuclear division"), t("D2.2 Gene expression", true), t("D2.3 Water potential"), t("D3.1 Reproduction"), t("D3.2 Inheritance"), t("D3.3 Homeostasis"), t("D4.1 Natural selection"), t("D4.2 Stability and change"), t("D4.3 Climate change")] } },
   German: { units: { Themes: [t("1. Identities"), t("2. Experiences"), t("3. Human Ingenuity"), t("4. Social Organization"), t("5. Sharing the Planet")] } },
   Psychology: { units: { Topics: [t("Biological SAQ's"), t("Cognitive SAQ's"), t("Sociocultural SAQ's"), t("Cognitive ERQ's"), t("Human Relationship ERQ's"), t("Etiology ERQ's"), t("Research Methods"), t("Sampling Techniques"), t("Alternative Research Methods"), t("Ethical Considerations"), t("Discussions (Paper 3)")] } },
-  Economics: { units: { RWE: [t("RWE - Micro"), t("RWE - Macro"), t("RWE - Global")], Unit2: [t("2.1 Demand"), t("2.2 Supply"), t("2.3 Equilibrium"), t("2.4 Critique of Maximizing Behaviour", true), t("2.5 Demand Elasticity"), t("2.6 Supply Elasticity"), t("2.7 Role of Government")], Unit3: [t("3.1 Measuring Economic Activity"), t("3.2 Aggregate Demand & Aggregate Supply"), t("3.3 Macroeconomic Objectives"), t("3.4 Inequality and Poverty"), t("3.5 Monetary Policy"), t("3.6 Fiscal Policy")], Unit4: [t("4.1 Benefits of International Trade"), t("4.2 Types of Trade Protection"), t("4.3 Arguments For and Against Trade Control/Protection"), t("4.4 Economic Integration"), t("4.5 Exchange Rates"), t("4.6 Balance of Payments")] } },
+  Economics: {
+    units: {
+      RWE: [t("RWE - Micro"), t("RWE - Macro"), t("RWE - Global")],
+      Unit2: [
+        t("2.1 Demand"),
+        t("2.2 Supply"),
+        t("2.3 Equilibrium"),
+        t("2.4 Critique of Maximizing Behaviour", true),
+        t("2.5 Demand Elasticity"),
+        t("2.6 Supply Elasticity"),
+        t("2.7 Role of Government"),
+        t("2.8 Externalities & Common Pool Resources"),
+        t("2.9 Public Goods"),
+        t("2.10 Asymmetric Information", true),
+        t("2.11 Market Power", true),
+        t("2.12 The Market's Inability to Achieve Equity", true),
+      ],
+      Unit3: [t("3.1 Measuring Economic Activity"), t("3.2 Aggregate Demand & Aggregate Supply"), t("3.3 Macroeconomic Objectives"), t("3.4 Inequality and Poverty"), t("3.5 Monetary Policy"), t("3.6 Fiscal Policy"), t("3.7 Supply-Side Policy")],
+      Unit4: [
+        t("4.1 Benefits of International Trade"),
+        t("4.2 Types of Trade Protection"),
+        t("4.3 Arguments For and Against Trade Control/Protection"),
+        t("4.4 Economic Integration"),
+        t("4.5 Exchange Rates"),
+        t("4.6 Balance of Payments"),
+        t("4.7 Sustainable Development"),
+        t("4.8 Measuring Development"),
+        t("4.9 Barriers to Economic Growth and/or Economic Development"),
+        t("4.10 Economic Growth and/or Economic Development Strategies"),
+      ],
+    },
+  },
   Physics: { units: { A: [t("A.1 Kinematics"), t("A.2 Forces & momentum"), t("A.3 Work, energy & power"), t("A.4 Rigid body mechanics", true), t("A.5 Relativity", true)], B: [t("B.1 Thermal energy transfers"), t("B.2 Greenhouse effect"), t("B.3 Gas laws"), t("B.4 Thermodynamics", true), t("B.5 Current & circuits")], C: [t("C.1 Simple Harmonic Motion", true), t("C.2 Wave model"), t("C.3 Wave phenomena", true), t("C.4 Standing waves & resonance")], D: [t("D.1 Gravitational fields", true), t("D.2 Electric & magnetic fields", true), t("D.3 Motion in electromagnetic fields"), t("D.4 Induction", true)], E: [t("E.1 Structure of the atom"), t("E.2 Quantum physics", true), t("E.3 Radioactive decay"), t("E.4 Fission"), t("E.5 Fusion & stars")] } },
   Chem: { units: { Structure: [t("Structure 1.1 Particulate nature of matter"), t("Structure 1.2 Nuclear atom"), t("Structure 1.3 Electron configuration"), t("Structure 1.4 The mole"), t("Structure 1.5 Ideal gases"), t("Structure 2.1 Ionic model"), t("Structure 2.2 Covalent model"), t("Structure 2.3 Metallic model")], Reactivity: [t("Reactivity 1.1 Measuring enthalpy changes"), t("Reactivity 1.2 Energy cycles"), t("Reactivity 1.3 Energy from fuels"), t("Reactivity 1.4 Entropy & spontaneity", true), t("Reactivity 2.1 Amount of chemical change"), t("Reactivity 2.2 Rate of reaction"), t("Reactivity 2.3 Extent of reaction")] } },
   Geo: { units: { Unit1: [t("Population and economic development patterns"), t("Changing populations and places"), t("Challenges and opportunities")], Unit2: [t("Causes of global climate change"), t("Consequence of global climate change"), t("Responding to global climate change")], Unit3: [t("Global trends in consumption"), t("Impacts of changing trends in resource consumption"), t("Resource stewardship")], OptionD: [t("Geophysical systems"), t("Geophysical hazard risks"), t("Hazard risk and vulnerability")], OptionF: [t("Future resilience and adaptation"), t("Measuring food and health"), t("Food systems and spread of disease")], OptionG: [t("Variety of urban environments"), t("Changing urban systems"), t("Urban environmental and social stresses"), t("Building sustainable urban systems")] } },
@@ -150,14 +181,11 @@ function renderSelectorPanel() {
 
 function renderTodayLists() {
   const all = Object.fromEntries(getTasks().map((t) => [t.id, t]));
-  const list = $("#today-list");
   const summary = $("#today-summary");
-  list.innerHTML = "";
   summary.innerHTML = "";
   state.profile.today.forEach((id) => {
     const task = all[id];
     if (!task) return;
-    list.appendChild(taskCard(task));
     summary.appendChild(taskCard(task));
   });
 }
@@ -171,7 +199,6 @@ function renderBadges() {
 function renderDashboard() { ensureDailyReset(); renderOverview(); renderSelectorPanel(); renderTodayLists(); renderBadges(); }
 function showView(view) { $("#auth-view").classList.add("hidden"); $("#onboarding-view").classList.add("hidden"); $("#dashboard-view").classList.add("hidden"); $(view).classList.remove("hidden"); }
 function tickCountdown() { const diff = Math.max(0, EXAM_DATE.getTime() - Date.now()); $("#cd-days").textContent = String(Math.floor(diff / (1000 * 60 * 60 * 24))); $("#cd-hours").textContent = String(Math.floor((diff / (1000 * 60 * 60)) % 24)); $("#cd-mins").textContent = String(Math.floor((diff / (1000 * 60)) % 60)); $("#cd-secs").textContent = String(Math.floor((diff / 1000) % 60)); }
-
 function drawTimer() { const m = String(Math.floor(state.timer / 60)).padStart(2, "0"); const s = String(state.timer % 60).padStart(2, "0"); const el = $("#timer-display"); el.textContent = `${m}:${s}`; el.classList.remove("timer-running", "timer-stopped", "timer-paused"); el.classList.add(`timer-${state.timerState}`); }
 function readCustomMinutes() { const parsed = Number($("#timer-custom").value.trim()); return Number.isFinite(parsed) && parsed >= 1 && parsed <= 180 ? parsed : null; }
 function applyMinutes(mins) { state.timer = mins * 60; state.timerState = "stopped"; drawTimer(); }
