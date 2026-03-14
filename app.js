@@ -188,36 +188,55 @@ function renderSelectorPanel() {
 
   if (!state.activeSubject) return;
   const subjectTasks = tasks.filter((t) => t.subject === state.activeSubject);
-  let currentUnit = null;
-  subjectTasks.forEach((task) => {
-    if (task.unit !== currentUnit) {
-      currentUnit = task.unit;
-      const unitHeader = document.createElement("div");
-      unitHeader.className = "unit-header";
-      unitHeader.textContent = currentUnit;
-      browser.appendChild(unitHeader);
-    }
+  const grouped = subjectTasks.reduce((acc, task) => {
+    acc[task.unit] ??= [];
+    acc[task.unit].push(task);
+    return acc;
+  }, {});
 
-    const row = document.createElement("div");
-    row.className = `topic-row ${task.done ? "completed" : ""}`;
-    row.innerHTML = `<span class="topic-text">${task.topic}</span><div class="topic-actions"></div>`;
-    const actions = row.querySelector(".topic-actions");
+  Object.entries(grouped).forEach(([unit, unitTasks], idx) => {
+    const section = document.createElement("section");
+    section.className = "topic-unit-section";
 
-    const mark = document.createElement("input");
-    mark.type = "checkbox";
-    mark.checked = task.done;
-    mark.addEventListener("change", () => { if (mark.checked) state.profile.completed[task.id] = true; else delete state.profile.completed[task.id]; persist(); renderDashboard(); });
-    actions.appendChild(mark);
+    const header = document.createElement("div");
+    header.className = "unit-header";
+    header.innerHTML = `<span class="unit-kicker">Topic ${idx + 1}</span><strong>${unit}</strong>`;
+    section.appendChild(header);
 
-    const add = document.createElement("button");
-    add.type = "button";
-    add.className = "small";
-    add.textContent = state.profile.today.includes(task.id) ? "Added" : "+ Add";
-    add.disabled = state.profile.today.includes(task.id) || state.profile.today.length >= 3;
-    add.addEventListener("click", () => addTodayTask(task.id));
-    actions.appendChild(add);
+    const grid = document.createElement("div");
+    grid.className = "topic-card-grid";
 
-    browser.appendChild(row);
+    unitTasks.forEach((task) => {
+      const card = document.createElement("article");
+      card.className = `topic-card ${task.done ? "completed" : ""}`;
+      card.innerHTML = `<h4 class="topic-card-title">${task.topic}</h4><p class="topic-card-meta">${task.subject} • ${task.unit}</p><div class="topic-actions"></div>`;
+      const actions = card.querySelector(".topic-actions");
+
+      const markWrap = document.createElement("label");
+      markWrap.className = "mark-wrap";
+      const mark = document.createElement("input");
+      mark.type = "checkbox";
+      mark.checked = task.done;
+      mark.addEventListener("change", () => { if (mark.checked) state.profile.completed[task.id] = true; else delete state.profile.completed[task.id]; persist(); renderDashboard(); });
+      markWrap.appendChild(mark);
+      const markText = document.createElement("span");
+      markText.textContent = task.done ? "Complete" : "Mark done";
+      markWrap.appendChild(markText);
+      actions.appendChild(markWrap);
+
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "small";
+      add.textContent = state.profile.today.includes(task.id) ? "Added" : "Add to Today";
+      add.disabled = state.profile.today.includes(task.id) || state.profile.today.length >= 3;
+      add.addEventListener("click", () => addTodayTask(task.id));
+      actions.appendChild(add);
+
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    browser.appendChild(section);
   });
 }
 
