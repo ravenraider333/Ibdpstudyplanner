@@ -22,7 +22,7 @@ Open `http://localhost:4173/`.
 > If you only host the static files (for example plain GitHub Pages), the shared backend endpoint will not exist. Deploy with `server.js` (or equivalent backend) for cross-computer syncing by code.
 
 
-## Account reset in this release
+## Shared login requirement
 
-- Existing stored accounts are cleared once when this server version boots (requested reset).
-- After that one-time reset, accounts save normally and sync across devices by code.
+- Both devices must open the planner against the same backend deployment URL for shared code accounts to match.
+- If you open one device on GitHub Pages static URL and another on a Node backend URL, they will not share the same account store.

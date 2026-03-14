@@ -48,6 +48,6 @@ If your changes are in a PR branch, merge it into your Pages branch (usually `ma
 This repo now includes a `docs/` copy of the app so GitHub Pages works immediately when source is set to `/docs`.
 
 
-## One-time account wipe included
+## Shared login requirement
 
-This version performs a one-time backend account reset on startup (`reset-accounts-2026-03-14`) and then continues normal persistence.
+All devices must use the same backend deployment URL (the same running `server.js` service) to share account data by code.

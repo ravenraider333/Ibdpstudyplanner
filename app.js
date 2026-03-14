@@ -113,20 +113,32 @@ function extractProfile(payload) {
 }
 
 async function remoteLoad(code) {
+  const foundProfiles = [];
+  let anyReachable = false;
+
   for (const source of BACKEND_SOURCES) {
     try {
       const res = await fetch(source.readUrl(code));
       if (!res.ok) continue;
+      anyReachable = true;
       const data = await res.json();
       const profile = extractProfile(data);
-      if (profile) return { ok: true, found: profile.updatedAt > 0 || profile.onboarded || Object.keys(profile.selectedSubjects || {}).length > 0, profile, source: source.name };
-      return { ok: true, found: false, profile: null, source: source.name };
+      if (profile) foundProfiles.push({ source: source.name, profile });
     } catch {}
   }
-  return { ok: false, found: false, profile: null, source: "none" };
+
+  if (foundProfiles.length > 0) {
+    foundProfiles.sort((a, b) => (Number(b.profile.updatedAt || 0) - Number(a.profile.updatedAt || 0)));
+    const best = foundProfiles[0];
+    return { ok: true, found: true, profile: best.profile, source: best.source, sources: foundProfiles.map((x) => x.source) };
+  }
+
+  return { ok: anyReachable, found: false, profile: null, source: anyReachable ? "reachable-empty" : "none", sources: [] };
 }
 
 async function remoteSave(code, profile) {
+  const okSources = [];
+
   for (const source of BACKEND_SOURCES) {
     try {
       const body = source.wrapWrite ? JSON.stringify({ profile }) : JSON.stringify(profile);
@@ -135,10 +147,11 @@ async function remoteSave(code, profile) {
         headers: { "Content-Type": "application/json" },
         body,
       });
-      if (res.ok) return { ok: true, source: source.name };
+      if (res.ok) okSources.push(source.name);
     } catch {}
   }
-  return { ok: false, source: "none" };
+
+  return { ok: okSources.length > 0, source: okSources[0] || "none", sources: okSources };
 }
 
 function normalize(p) { return { selectedSubjects: p?.selectedSubjects || {}, completed: p?.completed || {}, today: Array.isArray(p?.today) ? p.today.slice(0, 3) : [], onboarded: Boolean(p?.onboarded), updatedAt: Number(p?.updatedAt || 0), dayStamp: p?.dayStamp || dayStamp() }; }
@@ -147,7 +160,7 @@ async function persist() {
   state.profile.updatedAt = Date.now();
   localSave(state.code, state.profile);
   const result = await remoteSave(state.code, state.profile);
-  setStatus(result.ok ? `Saved to shared backend (${result.source}).` : "Save failed: shared backend unavailable; saved locally only.");
+  setStatus(result.ok ? `Saved to shared backend (${result.sources.join(", ")}).` : "Save failed: shared backend unavailable; saved locally only.");
   return result.ok;
 }
 function ensureDailyReset() { const today = dayStamp(); if (state.profile.dayStamp !== today) { state.profile.dayStamp = today; state.profile.today = []; persist(); setStatus("New day detected: daily task selector reset."); } }
@@ -338,7 +351,7 @@ async function login(codeRaw) {
     }
   } else if (remote.found) {
     state.profile = remote.profile;
-    setStatus(`Shared account loaded from ${remote.source} backend.`);
+    setStatus(`Shared account loaded from ${remote.source} backend (checked: ${remote.sources.join(", ") || "none"}).`);
   } else if (local.updatedAt > 0) {
     state.profile = local;
     const upload = await remoteSave(code, state.profile);
