@@ -1,4 +1,5 @@
 const EXAM_DATE = new Date("2026-04-27T09:00:00");
+const BUILD_VERSION = "2026-03-15.1";
 const t = (name, hlOnly = false) => ({ name, hlOnly });
 
 const syllabusCatalog = {
@@ -610,6 +611,8 @@ function init() {
   setSyncState("unsynced", "Not connected");
   setHeaderAuthActionsEnabled(false);
   renderPendingBanner();
+  const buildEl = $("#build-version");
+  if (buildEl) buildEl.textContent = `Build ${BUILD_VERSION}`;
   $("#countdown-date").textContent = EXAM_DATE.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
   tickCountdown();
   drawTimer();
