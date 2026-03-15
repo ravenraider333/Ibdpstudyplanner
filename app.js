@@ -243,7 +243,7 @@ function sanitizeTodaySelection(tasks) {
   state.profile.today = unique.slice(0, 3);
 }
 
-function progressRow(label, done, total) { const pct = total ? Math.round((done / total) * 100) : 0; return `<div class="progress"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`; }
+function progressRow(label, done, total, variant = "") { const pct = total ? Math.round((done / total) * 100) : 0; const cls = variant ? `progress ${variant}` : "progress"; return `<div class="${cls}"><div class="meta"><span>${label}</span><strong>${done}/${total} · ${pct}%</strong></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></div>`; }
 
 function renderSubjectPicker() {
   const root = $("#subject-picker");
@@ -270,7 +270,7 @@ function collectSubjects() {
 function renderOverview() {
   const tasks = getTasks();
   const done = tasks.filter((t) => t.done).length;
-  $("#overall-progress").innerHTML = progressRow("Overall", done, tasks.length);
+  $("#overall-progress").innerHTML = progressRow("Overall", done, tasks.length, "overall-highlight");
   const bySubject = {};
   const byUnit = {};
   tasks.forEach((t) => {
