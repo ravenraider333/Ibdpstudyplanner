@@ -1,63 +1,65 @@
 # Publishing this planner to GitHub
 
-If you don't see changes on GitHub, the local branch usually has no configured remote.
+## Split deployment target
+Frontend: GitHub Pages (`https://ravenraider333.github.io/Ibdpstudyplanner/`)  
+Backend: separately hosted Node service running `server.js`
 
-## 1) Connect your GitHub repository as `origin`
+## 1) Deploy backend (Render, exact steps)
 
-```bash
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-```
+1. Push this repo to GitHub.
+2. In Render: **New +** → **Web Service** → connect this repo.
+3. Settings:
+   - **Runtime:** Node
+   - **Build Command:** `npm install` (or blank if no package file)
+   - **Start Command:** `node server.js`
+   - **Instance/Region:** any
+4. Environment variables:
+   - `PORT` = (leave empty; Render injects this automatically)
+   - `CORS_ORIGINS` = `https://ravenraider333.github.io,http://localhost:4173,http://127.0.0.1:4173`
+5. Deploy and copy backend URL, e.g. `https://ibdp-backend.onrender.com`.
 
-If `origin` already exists, update it:
+## 2) Set frontend backend URL (GitHub Pages docs build)
 
-```bash
-git remote set-url origin https://github.com/<your-username>/<your-repo>.git
-```
-
-## 2) Push the current branch
-
-```bash
-git push -u origin work
-```
-
-(Replace `work` with your branch name if needed.)
-
-## 3) Deploy with backend (recommended for shared accounts)
-
-Shared accounts by code require the API routes in `server.js`.
-Deploy to a Node-capable host (Render/Railway/Fly/VM/etc.) and run:
-
-```bash
-node server.js
-```
-
-This single-origin mode needs no frontend config.
-
-## 4) Enable GitHub Pages (static-only frontend)
-
-1. Open **Settings → Pages** in your GitHub repo.
-2. Under **Build and deployment**, choose **Deploy from a branch**.
-3. Select branch **main** (or your preferred branch) and folder **/docs** (recommended) or **/(root)**.
-4. Save and wait for deployment.
-
-If using Pages + separate backend, set backend base URL in `docs/index.html`:
+Edit `docs/index.html` and set:
 
 ```html
-<meta name="ibdp-backend-base-url" content="https://your-backend.example.com" />
+<meta name="ibdp-backend-base-url" content="https://ibdp-backend.onrender.com" />
 ```
 
-or set:
+(Use your real Render URL.)
 
-```html
-<script>window.IBDP_BACKEND_BASE_URL = "https://your-backend.example.com";</script>
+## 3) Commit and push Pages config change
+
+```bash
+git add docs/index.html
+git commit -m "Configure Pages frontend backend URL"
+git push origin main
 ```
 
-Trailing slashes are normalized by frontend runtime.
+## 4) Enable Pages
 
-## 5) CORS for split hosting
+1. Repo → **Settings** → **Pages**
+2. Source: branch `main`, folder `/docs`
+3. Save and wait for deployment
 
-When frontend and backend are on different origins, backend must allow CORS from your frontend origin (and allow `GET`, `PUT`, `OPTIONS` + `Content-Type` header).
+## 5) Verify end-to-end
 
-## 6) Merge PR branch
+1. Open `https://ravenraider333.github.io/Ibdpstudyplanner/`
+2. Confirm build marker is visible.
+3. Open DevTools Console and run:
+   ```js
+   document.querySelector('meta[name="ibdp-backend-base-url"]').content
+   ```
+   It must equal your Render backend URL.
+4. Try create/login with a code.
+5. On backend, verify API responds:
+   - `GET https://ibdp-backend.onrender.com/api/profile/aram`
 
-If your changes are in a PR branch, merge it into your Pages branch (usually `main`) so the site updates.
+## 6) CORS requirements (must pass)
+
+Backend must return:
+- `Access-Control-Allow-Origin: https://ravenraider333.github.io`
+- `Access-Control-Allow-Methods: GET,PUT,OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type`
+
+This repo's `server.js` now supports this via `CORS_ORIGINS` allowlist.

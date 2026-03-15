@@ -23,6 +23,24 @@ const MIME = {
 
 const sanitize = (code) => String(code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://ravenraider333.github.io',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'http://localhost:8010',
+  'http://127.0.0.1:8010',
+];
+const ALLOWED_ORIGINS = new Set((process.env.CORS_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(','))
+  .split(',')
+  .map((x) => x.trim())
+  .filter(Boolean));
+
+function resolveCorsOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return null;
+  return ALLOWED_ORIGINS.has(origin) ? origin : null;
+}
+
 function readDb() {
   try {
     return JSON.parse(fs.readFileSync(DB_PATH, 'utf8') || '{}');
@@ -36,38 +54,41 @@ function writeDb(db) {
 }
 
 
-function send(res, status, body, type = 'application/json; charset=utf-8') {
-  res.writeHead(status, {
+function send(req, res, status, body, type = 'application/json; charset=utf-8') {
+  const corsOrigin = resolveCorsOrigin(req);
+  const headers = {
     'Content-Type': type,
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-  });
+    'Vary': 'Origin',
+  };
+  if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
+  res.writeHead(status, headers);
   res.end(body);
 }
 
-function serveFile(reqPath, res) {
+function serveFile(req, reqPath, res) {
   const clean = reqPath === '/' ? '/index.html' : reqPath;
   const full = path.normalize(path.join(ROOT, clean));
-  if (!full.startsWith(ROOT)) return send(res, 403, 'Forbidden', 'text/plain; charset=utf-8');
+  if (!full.startsWith(ROOT)) return send(req, res, 403, 'Forbidden', 'text/plain; charset=utf-8');
   fs.readFile(full, (err, data) => {
-    if (err) return send(res, 404, 'Not found', 'text/plain; charset=utf-8');
-    send(res, 200, data, MIME[path.extname(full)] || 'application/octet-stream');
+    if (err) return send(req, res, 404, 'Not found', 'text/plain; charset=utf-8');
+    send(req, res, 200, data, MIME[path.extname(full)] || 'application/octet-stream');
   });
 }
 
 const server = http.createServer((req, res) => {
-  if (req.method === 'OPTIONS') return send(res, 204, '');
+  if (req.method === 'OPTIONS') return send(req, res, 204, '');
 
   const url = new URL(req.url, `http://${req.headers.host}`);
   const m = url.pathname.match(/^\/api\/profile\/([^/]+)$/);
   if (m) {
     const code = sanitize(decodeURIComponent(m[1] || ''));
-    if (!code) return send(res, 400, JSON.stringify({ error: 'Invalid code' }));
+    if (!code) return send(req, res, 400, JSON.stringify({ error: 'Invalid code' }));
 
     if (req.method === 'GET') {
       const db = readDb();
-      return send(res, 200, JSON.stringify({ profile: db[code] || null }));
+      return send(req, res, 200, JSON.stringify({ profile: db[code] || null }));
     }
 
     if (req.method === 'PUT') {
@@ -80,22 +101,22 @@ const server = http.createServer((req, res) => {
         try {
           const parsed = JSON.parse(body || '{}');
           const profile = parsed.profile;
-          if (!profile || typeof profile !== 'object') return send(res, 400, JSON.stringify({ error: 'Missing profile' }));
+          if (!profile || typeof profile !== 'object') return send(req, res, 400, JSON.stringify({ error: 'Missing profile' }));
           const db = readDb();
           db[code] = profile;
           writeDb(db);
-          return send(res, 200, JSON.stringify({ ok: true }));
+          return send(req, res, 200, JSON.stringify({ ok: true }));
         } catch {
-          return send(res, 400, JSON.stringify({ error: 'Invalid JSON' }));
+          return send(req, res, 400, JSON.stringify({ error: 'Invalid JSON' }));
         }
       });
       return;
     }
 
-    return send(res, 405, JSON.stringify({ error: 'Method not allowed' }));
+    return send(req, res, 405, JSON.stringify({ error: 'Method not allowed' }));
   }
 
-  serveFile(url.pathname, res);
+  serveFile(req, url.pathname, res);
 });
 
 server.listen(PORT, () => {
